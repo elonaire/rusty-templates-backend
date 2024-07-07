@@ -180,7 +180,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          source: "docker-compose.yml,docker-compose.acl.yml,docker-compose.shared.yml"
+          # source: "docker-compose.yml,docker-compose.acl.yml,docker-compose.shared.yml"
+          source: "docker-compose.yml"
           target: ~/
 
       - name: 'Tar files'
