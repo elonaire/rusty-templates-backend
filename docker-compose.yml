@@ -1,0 +1,53 @@
+version: '3.8'
+
+networks:
+  app-tier:
+    driver: bridge
+
+services:
+  gateway:
+    image: nginx:latest
+    # container_name: gateway
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 200M
+    ports:
+      - "80-82:80"
+      - "443-445:443" # Uncomment this line if you want to use https
+    depends_on:
+      - rt-frontend
+    volumes:
+      - /etc/ssl/certs:/etc/nginx/certs # Uncomment this line if you want to use https
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx:/var/log/nginx
+    networks:
+      - app-tier
+  rt-frontend:
+    image: elonaire/rt-frontend:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 200M
+    ports:
+      - "8080-8082:8080"
+    # container_name: rt-frontend
+    # depends_on:
+    #   - rt-acl-service
+    #   - rt-shared-service
+    volumes:
+      - ./.well-known/pki-validation/:/usr/share/nginx/html
+    networks:
+      - app-tier
+  
