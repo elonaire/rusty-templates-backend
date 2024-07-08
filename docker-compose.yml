@@ -46,8 +46,6 @@ services:
     # depends_on:
     #   - rt-acl-service
     #   - rt-shared-service
-    volumes:
-      - ./.well-known/pki-validation/:/usr/share/nginx/html
     networks:
       - app-tier
   
