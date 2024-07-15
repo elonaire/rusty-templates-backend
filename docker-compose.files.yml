@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  rt-files:
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+        - linux/arm64
+      args:
+        SERVICE_NAME: acl-service
+        PORT: 3001

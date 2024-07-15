@@ -42,10 +42,40 @@ services:
           memory: 200M
     ports:
       - "8080-8082:8080"
-    # container_name: rt-frontend
     # depends_on:
     #   - rt-acl-service
     #   - rt-shared-service
     networks:
       - app-tier
-  
+
+  rt-files:
+    image: elonaire/rt-files:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 200M
+    ports:
+      - "3001-3003:3001"
+    # depends_on:
+    #   - rt-acl-service
+    #   - rt-shared-service
+    networks:
+      - app-tier
+    volumes:
+      - ./services/shared-service/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+      - ./services/shared-service/posts:/usr/src/posts
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_FILES=${DATABASE_NAME_FILES}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_FILES=${DATABASE_HOST_FILES}
+      - DATABASE_PORT_FILES=${DATABASE_PORT_FILES}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
