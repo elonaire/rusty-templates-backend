@@ -3,11 +3,12 @@ mod database;
 mod rest;
 
 use std::sync::Arc;
+use crate::rest::handlers::upload;
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
-    extract::Extension,
+    extract::{Extension, DefaultBodyLimit},
     http::{HeaderMap, HeaderValue},
     routing::post,
     Router,
@@ -60,9 +61,10 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/", post(graphql_handler))
-        // .route("/oauth/callback", get(oauth_handler))
+        .route("/upload", post(upload))
         .layer(Extension(schema))
         .layer(Extension(db))
+        .layer(DefaultBodyLimit::max(100 * 1024 * 1024))
         .layer(
             CorsLayer::new()
                 .allow_origin(origins)
