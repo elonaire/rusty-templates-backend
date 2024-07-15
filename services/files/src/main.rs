@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
         .route("/upload", post(upload))
         .layer(Extension(schema))
         .layer(Extension(db))
-        .layer(DefaultBodyLimit::max(500 * 1024 * 1024))
+        .layer(DefaultBodyLimit::max(100 * 1024 * 1024))
         .layer(
             CorsLayer::new()
                 .allow_origin(origins)
