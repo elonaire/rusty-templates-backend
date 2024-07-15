@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = [ "services/orders", "services/payments","services/products"]
+members = [ "services/files", "services/mail", "services/orders", "services/payments", "services/preview","services/products"]
 
 [profile.release]
 strip = true
