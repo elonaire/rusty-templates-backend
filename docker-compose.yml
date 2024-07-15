@@ -68,8 +68,7 @@ services:
     networks:
       - app-tier
     volumes:
-      - ./services/shared-service/database/schemas/schemas.surql:/usr/src/db/schemas.surql
-      - ./services/shared-service/posts:/usr/src/posts
+      - ./services/files/database/schemas/schemas.surql:/usr/src/db/schemas.surql
     environment:
       - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
       - DATABASE_NAME_FILES=${DATABASE_NAME_FILES}
