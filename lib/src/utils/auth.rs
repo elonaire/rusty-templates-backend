@@ -28,10 +28,8 @@ pub struct User {
     pub user_id: String,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
-pub struct ForeignKey{
-    #[graphql(skip)]
-    pub id: Option<Thing>,
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ForeignKey {
     pub table: String,
     pub column: String,
     pub foreign_key: String,

@@ -19,7 +19,6 @@ impl Mutation {
             Some(auth_status) => {
                 // let owner: Thing = format!("user_id:{}", auth_status.decode_token).parse().unwrap();
                 let foreign_key = ForeignKey {
-                    id: None,
                     table: "user_id".into(),
                     column: "user_id".into(),
                     foreign_key: auth_status.decode_token

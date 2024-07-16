@@ -5,7 +5,7 @@ use axum::Extension;
 // use lib::utils::custom_error::ExtendedError;
 use surrealdb::{engine::remote::ws::Client as SurrealClient, Surreal};
 
-use crate::utils::{auth::ForeignKey, custom_error::ExtendedError};
+use crate::utils::auth::ForeignKey;
 use serde::{Deserialize, Serialize};
 
 pub async fn add_foreign_key_if_not_exists<F: for<'de> Deserialize<'de> + Serialize>(ctx: &Context<'_>, foreign_key: ForeignKey) -> Option<F> {
