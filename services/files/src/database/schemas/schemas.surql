@@ -15,12 +15,13 @@ DEFINE TABLE file SCHEMAFULL;
 DEFINE FIELD name ON TABLE file TYPE string;
 DEFINE FIELD size ON TABLE file TYPE number;
 DEFINE FIELD mime_type ON TABLE file TYPE string;
+DEFINE FIELD owner ON TABLE file TYPE record<user_id>;
 DEFINE FIELD created_at ON TABLE file TYPE datetime
   DEFAULT time::now();
 
--- Relationship between user, product and file
+-- Relationship between product and file
 DEFINE TABLE has_file SCHEMAFULL;
 DEFINE INDEX fileIndex ON TABLE has_file
 COLUMNS in, out UNIQUE;
-DEFINE FIELD in ON TABLE has_file TYPE record;
+DEFINE FIELD in ON TABLE has_file TYPE record<product_id>;
 DEFINE FIELD out ON TABLE has_file TYPE record<file>;
