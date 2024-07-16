@@ -43,7 +43,7 @@ async fn graphql_handler(
 async fn main() -> Result<()> {
     let db = Arc::new(database::connection::create_db_connection().await.unwrap());
 
-    let schema = Schema::build(Query, Mutation, EmptySubscription).finish();
+    let schema = Schema::build(Query, Mutation::default(), EmptySubscription).finish();
 
     println!("GraphiQL IDE: http://localhost:3001");
 
