@@ -22,6 +22,9 @@ services:
       - "443-445:443" # Uncomment this line if you want to use https
     depends_on:
       - rt-frontend
+      - rt-acl
+      - rt-files
+      - rt-products
     volumes:
       - /etc/ssl/certs:/etc/nginx/certs # Uncomment this line if you want to use https
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
@@ -42,11 +45,13 @@ services:
           memory: 200M
     ports:
       - "8080-8082:8080"
-    # depends_on:
-    #   - rt-acl-service
-    #   - rt-shared-service
+    depends_on:
+      - rt-acl
+      - rt-products
+      - rt-files
     networks:
       - app-tier
+
 
   rt-files:
     image: elonaire/rt-files:latest
@@ -62,9 +67,8 @@ services:
           memory: 200M
     ports:
       - "3001-3003:3001"
-    # depends_on:
-    #   - rt-acl-service
-    #   - rt-shared-service
+    depends_on:
+      - rt-acl
     networks:
       - app-tier
     volumes:
@@ -78,3 +82,98 @@ services:
       - DATABASE_PORT_FILES=${DATABASE_PORT_FILES}
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+
+  rt-products:
+    image: elonaire/rt-products:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 200M
+    ports:
+      - "3004-3006:3002"
+    depends_on:
+      - rt-acl
+    networks:
+      - app-tier
+    volumes:
+      - ./services/products/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_PRODUCTS=${DATABASE_NAME_PRODUCTS}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_PRODUCTS=${DATABASE_HOST_PRODUCTS}
+      - DATABASE_PORT_PRODUCTS=${DATABASE_PORT_PRODUCTS}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+
+  rt-acl:
+    image: elonaire/acl-service:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 200M
+    ports:
+      - "3007-3009:3003"
+    # depends_on:
+    #   - rt-acl-service
+    #   - rt-shared-service
+    networks:
+      - app-tier
+    # volumes:
+    #   - ./services/products/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_ACL=${DATABASE_NAME_ACL}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_ACL=${DATABASE_HOST_ACL}
+      - DATABASE_PORT_ACL=${DATABASE_PORT_ACL}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+
+  rt-acl-db:
+    image: surrealdb/surrealdb:v1.5.4
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+    container_name: rt-acl-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} file:/db-data/mydatabase.db
+    volumes:
+      - rt-acl-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+  rt-products-db:
+    image: surrealdb/surrealdb:v1.5.4
+    restart: unless-stopped
+    ports:
+      - 8001:8001
+    container_name: rt-products-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8001 file:/db-data/mydatabase.db
+    volumes:
+      - rt-products-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}

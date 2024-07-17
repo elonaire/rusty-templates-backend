@@ -14,3 +14,6 @@ surrealdb = "1.5.4"
 chrono = "0.4.38"
 serde = "1.0.204"
 dotenvy = "0.15.7"
+
+[lints.rust]
+unsafe_code = "forbid"

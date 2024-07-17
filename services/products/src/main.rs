@@ -1,8 +1,7 @@
 mod graphql;
 mod database;
-mod rest;
 
-use std::sync::Arc;
+use std::{sync::Arc, env};
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -44,19 +43,12 @@ async fn graphql_handler(
 async fn main() -> Result<()> {
     let db = Arc::new(database::connection::create_db_connection().await.unwrap());
 
-    let schema = Schema::build(Query, Mutation, EmptySubscription).finish();
+    let schema = Schema::build(Query, Mutation::default(), EmptySubscription).finish();
 
-    println!("GraphiQL IDE: http://localhost:3001");
+    let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
+                    .expect("Missing the ALLOWED_SERVICES environment variable.");
 
-    // let shared_service_endpoint = env::var("SHARED_SERVICE")
-    //                 .expect("Missing the SHARED_SERVICE environment variable.");
-
-    let origins = [
-        "http://localhost:8080".parse::<HeaderValue>().unwrap(),
-        "http://localhost:3002".parse::<HeaderValue>().unwrap(),
-        "http://localhost:3003".parse::<HeaderValue>().unwrap(),
-        // shared_service_endpoint.as_str().parse::<HeaderValue>().unwrap(),
-    ];
+    let origins: Vec<HeaderValue> = allowed_services_cors.as_str().split(",").into_iter().map(|endpoint| endpoint.parse::<HeaderValue>().unwrap()).collect();
 
     let app = Router::new()
         .route("/", post(graphql_handler))
@@ -71,7 +63,7 @@ async fn main() -> Result<()> {
                 .allow_methods(vec![Method::GET, Method::POST]),
         );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3002").await.unwrap();
     serve(listener, app)
         .await
         .unwrap();
