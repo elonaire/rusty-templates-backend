@@ -177,3 +177,8 @@ services:
     environment:
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
+
+volumes:
+  rt-products-db:
+  rt-acl-db:
