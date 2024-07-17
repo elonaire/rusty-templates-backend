@@ -148,7 +148,7 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker buildx build --build-arg SERVICE_NAME=products --build-arg PORT=3002 -t elonaire/rt-products:latest --push .
+          docker buildx build --build-arg SERVICE_NAME=products --build-arg PORT=3004 -t elonaire/rt-products:latest --push .
 
   deploy_to_server:
     runs-on: ubuntu-latest
