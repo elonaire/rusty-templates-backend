@@ -206,8 +206,8 @@ jobs:
     if: |
       always() &&
       (
-        (needs.check_files_service_changes.outputs.files_service_should_deploy == 'true' && needs.build_and_deploy_files.result == 'success' && needs.check_products_service_changes.outputs.products_service_should_deploy == 'false') ||
-        (needs.check_products_service_changes.outputs.products_service_should_deploy == 'true' && needs.build_and_deploy_products_service.result == 'success' && needs.check_files_service_changes.outputs.files_service_should_deploy == 'false') ||
+        (needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_products_service.result == 'skipped') ||
+        (needs.build_and_deploy_products_service.result == 'success' && needs.build_and_deploy_files.result == 'skipped') ||
         (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_products_service.result == 'skipped') ||
         needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_products_service.result == 'success'
       )
