@@ -98,7 +98,7 @@ services:
           cpus: '0.5'
           memory: 200M
     ports:
-      - "3004-3006:3002"
+      - "3004-3006:3004"
     depends_on:
       - rt-acl
       - rt-products-db
@@ -130,7 +130,7 @@ services:
           cpus: '0.5'
           memory: 200M
     ports:
-      - "3007-3009:3003"
+      - "3007-3009:3007"
     depends_on:
       - rt-acl-db
     networks:
