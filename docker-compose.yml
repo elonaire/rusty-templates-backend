@@ -178,7 +178,23 @@ services:
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
 
+  rt-files-db:
+    image: surrealdb/surrealdb:v1.5.4
+    restart: unless-stopped
+    ports:
+      - 8002:8002
+    container_name: rt-files-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8002 file:/db-data/mydatabase.db
+    volumes:
+      - rt-files-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
 
 volumes:
   rt-products-db:
   rt-acl-db:
+  rt-files-db:
