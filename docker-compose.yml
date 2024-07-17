@@ -135,8 +135,8 @@ services:
       - rt-acl-db
     networks:
       - app-tier
-    # volumes:
-    #   - ./services/products/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    volumes:
+      - ./services/acl/database/schemas/schemas.surql:/usr/src/db/schemas.surql
     environment:
       - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
       - DATABASE_NAME_ACL=${DATABASE_NAME_ACL}
