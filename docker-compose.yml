@@ -69,6 +69,7 @@ services:
       - "3001-3003:3001"
     depends_on:
       - rt-acl
+      - rt-files-db
     networks:
       - app-tier
     volumes:
@@ -100,6 +101,7 @@ services:
       - "3004-3006:3002"
     depends_on:
       - rt-acl
+      - rt-products-db
     networks:
       - app-tier
     volumes:
@@ -129,9 +131,8 @@ services:
           memory: 200M
     ports:
       - "3007-3009:3003"
-    # depends_on:
-    #   - rt-acl-service
-    #   - rt-shared-service
+    depends_on:
+      - rt-acl-db
     networks:
       - app-tier
     # volumes:
