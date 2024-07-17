@@ -3,3 +3,4 @@
 /services/**/db-file
 history.txt
 /services/files/src/uploads
+prod.env

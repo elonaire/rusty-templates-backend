@@ -2,7 +2,7 @@ mod graphql;
 mod database;
 mod rest;
 
-use std::sync::Arc;
+use std::{sync::Arc, env};
 use crate::rest::handlers::upload;
 
 use async_graphql::{EmptySubscription, Schema};
@@ -47,17 +47,10 @@ async fn main() -> Result<()> {
 
     let schema = Schema::build(Query, Mutation, EmptySubscription).finish();
 
-    println!("GraphiQL IDE: http://localhost:3001");
+    let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
+                    .expect("Missing the ALLOWED_SERVICES environment variable.");
 
-    // let shared_service_endpoint = env::var("SHARED_SERVICE")
-    //                 .expect("Missing the SHARED_SERVICE environment variable.");
-
-    let origins = [
-        "http://localhost:8080".parse::<HeaderValue>().unwrap(),
-        "http://localhost:3002".parse::<HeaderValue>().unwrap(),
-        "http://localhost:3003".parse::<HeaderValue>().unwrap(),
-        // shared_service_endpoint.as_str().parse::<HeaderValue>().unwrap(),
-    ];
+    let origins: Vec<HeaderValue> = allowed_services_cors.as_str().split(",").into_iter().map(|endpoint| endpoint.parse::<HeaderValue>().unwrap()).collect();
 
     let app = Router::new()
         .route("/", post(graphql_handler))

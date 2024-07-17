@@ -14,10 +14,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
   FILES_PATHS: 'services/files/'
-  SHARED_SERVICE_PATHS: 'services/shared-service/'
+  PRODUCTS_SERVICE_PATHS: 'services/products/'
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  check_files_changes:
+  check_files_service_changes:
     runs-on: ubuntu-latest
     # needs: [build]
     outputs:
@@ -58,52 +58,52 @@ jobs:
             echo "FILES_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-  # check_shared_service_changes:
-  #   runs-on: ubuntu-latest
-  #   # needs: [build]
-  #   outputs:
-  #     shared_service_should_deploy: ${{ steps.confirm_changes.outputs.SHARED_SERVICE_SHOULD_DEPLOY }}
+  check_products_service_changes:
+    runs-on: ubuntu-latest
+    # needs: [build]
+    outputs:
+      products_service_should_deploy: ${{ steps.confirm_changes.outputs.PRODUCTS_SERVICE_SHOULD_DEPLOY }}
 
-  #   permissions:
-  #     id-token: write # required to use OIDC authentication
-  #     contents: read # required to checkout the code from the repo
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read # required to checkout the code from the repo
 
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 0
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-  #     - id: file_changes
-  #       name: Check for Shared Service Changes
-  #       run: |
-  #         echo "Base SHA: ${{ github.event.pull_request.base.sha }}"
-  #         echo "Head SHA: ${{ github.sha }}"
-  #         files_temp=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-  #         files=$(echo "$files_temp" | tr "\n" " ")
-  #         echo "changed_files=$files" >> "$GITHUB_OUTPUT"
+      - id: file_changes
+        name: Check for Products Service Changes
+        run: |
+          echo "Base SHA: ${{ github.event.pull_request.base.sha }}"
+          echo "Head SHA: ${{ github.sha }}"
+          files_temp=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          files=$(echo "$files_temp" | tr "\n" " ")
+          echo "changed_files=$files" >> "$GITHUB_OUTPUT"
 
-  #     - id: confirm_changes
-  #       name: Confirm Changes
-  #       shell: bash
-  #       run: |
-  #         echo "Changed files: ${{ steps.file_changes.outputs.changed_files }}"
-  #         echo "If you see here files that you have not modified, please update your branch with changes from main."
+      - id: confirm_changes
+        name: Confirm Changes
+        shell: bash
+        run: |
+          echo "Changed files: ${{ steps.file_changes.outputs.changed_files }}"
+          echo "If you see here files that you have not modified, please update your branch with changes from main."
 
-  #         # Check if the modified files include this path
-  #         if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.SHARED_SERVICE_PATHS }}"; then
-  #           # Set the output variable and exit the loop
-  #           echo "triggering_path is ${{ env.SHARED_SERVICE_PATHS }}"
-  #           echo "SHARED_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
-  #           cat "$GITHUB_OUTPUT"
-  #         else
-  #           echo "SHARED_SERVICE_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
-  #           exit 0
-  #         fi
+          # Check if the modified files include this path
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PRODUCTS_SERVICE_PATHS }}"; then
+            # Set the output variable and exit the loop
+            echo "triggering_path is ${{ env.PRODUCTS_SERVICE_PATHS }}"
+            echo "PRODUCTS_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
+            cat "$GITHUB_OUTPUT"
+          else
+            echo "PRODUCTS_SERVICE_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
   build_and_deploy_files:
     runs-on: ubuntu-latest
-    needs: [check_files_changes]
-    if: ${{ needs.check_files_changes.outputs.files_service_should_deploy == 'true' }}
+    needs: [check_files_service_changes]
+    if: ${{ needs.check_files_service_changes.outputs.files_service_should_deploy == 'true' }}
 
     permissions:
       id-token: write # required to use OIDC authentication
@@ -122,54 +122,45 @@ jobs:
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
       - name: Build the Docker image
-        # run: docker-compose  -f docker-compose.yml -f docker-compose.files.yml build
-        # run: docker-compose -f docker-compose.files.yml -f docker-compose.files.yml build
         run: |
           docker buildx build --build-arg SERVICE_NAME=files --build-arg PORT=3001 -t elonaire/rt-files:latest --push .
 
-      # - name: Push the Docker image
-      #   run: docker push elonaire/rt-files:latest
+  build_and_deploy_products_service:
+    runs-on: ubuntu-latest
+    needs: [check_products_service_changes]
+    if: ${{ needs.check_products_service_changes.outputs.products_service_should_deploy == 'true' }}
 
-  # build_and_deploy_shared_service:
-  #   runs-on: ubuntu-latest
-  #   needs: [check_shared_service_changes]
-  #   if: ${{ needs.check_shared_service_changes.outputs.shared_service_should_deploy == 'true' }}
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read # required to checkout the code from the repo
 
-  #   permissions:
-  #     id-token: write # required to use OIDC authentication
-  #     contents: read # required to checkout the code from the repo
+    steps:
+      - uses: actions/checkout@v3
 
-  #   steps:
-  #     - uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
 
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v1
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-  #     - name: Log in to Docker Hub
-  #       uses: docker/login-action@v1
-  #       with:
-  #         username: ${{ secrets.DOCKER_HUB_USERNAME }}
-  #         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-
-  #     - name: Build the Docker image
-  #       # run: docker-compose  -f docker-compose.yml -f docker-compose.shared.yml build
-  #       run: docker-compose -f docker-compose.shared.yml -f docker-compose.build-shared.yml build
-
-  #     - name: Push the Docker image
-  #       run: docker push elonaire/tt-shared-service:latest
+      - name: Build the Docker image
+        run: |
+          docker buildx build --build-arg SERVICE_NAME=products --build-arg PORT=3002 -t elonaire/rt-products:latest --push .
 
   deploy_to_server:
     runs-on: ubuntu-latest
-    needs: [build_and_deploy_files]
-    # if: |
-    #   always() &&
-    #   (
-    #     (needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_shared_service.result == 'success') ||
-    #     (needs.build_and_deploy_shared_service.result == 'success' && needs.build_and_deploy_files.result == 'skipped') ||
-    #     (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_shared_service.result == 'skipped') ||
-    #     (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_shared_service.result == 'success') ||
-    #     (needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_shared_service.result == 'skipped')
-    #   )
+    needs: [check_files_service_changes, check_products_service_changes, build_and_deploy_files, build_and_deploy_products_service]
+    if: |
+      always() &&
+      (
+        (needs.check_files_service_changes.outputs.files_service_should_deploy == 'true' && needs.build_and_deploy_files.result == 'success' && needs.check_products_service_changes.outputs.products_service_should_deploy == 'false') ||
+        (needs.check_products_service_changes.outputs.products_service_should_deploy == 'true' && needs.build_and_deploy_products_service.result == 'success' && needs.check_files_service_changes.outputs.files_service_should_deploy == 'false') ||
+        (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_products_service.result == 'skipped') ||
+        needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_products_service.result == 'success'
+      )
 
     steps:
       - name: Checkout code
@@ -210,19 +201,16 @@ jobs:
 
   automerge:
     runs-on: ubuntu-latest
-    needs: [deploy_to_server]
 
-    # needs: [build_and_deploy_files, build_and_deploy_shared_service, deploy_to_server]
-    # if: |
-    #   always() &&
-    #   (
-    #     (needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_shared_service.result == 'success' && needs.deploy_to_server.result == 'success') ||
-    #     (needs.build_and_deploy_shared_service.result == 'success' && needs.build_and_deploy_files.result == 'skipped' && needs.deploy_to_server.result == 'success') ||
-    #     (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_shared_service.result == 'skipped' && needs.deploy_to_server.result == 'success') ||
-    #     (needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_shared_service.result == 'skipped' && needs.deploy_to_server.result == 'success') ||
-    #     (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_shared_service.result == 'skipped' && needs.deploy_to_server.result == 'success') ||
-    #     (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_shared_service.result == 'skipped' && needs.deploy_to_server.result == 'skipped')
-    #   )
+    needs: [build_and_deploy_files, build_and_deploy_products_service, deploy_to_server]
+    if: |
+      always() &&
+      (
+        (needs.check_files_service_changes.outputs.files_service_should_deploy == 'true' && needs.build_and_deploy_files.result == 'success' && needs.check_products_service_changes.outputs.products_service_should_deploy == 'false') ||
+        (needs.check_products_service_changes.outputs.products_service_should_deploy == 'true' && needs.build_and_deploy_products_service.result == 'success' && needs.check_files_service_changes.outputs.files_service_should_deploy == 'false') ||
+        (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_products_service.result == 'skipped') ||
+        needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_products_service.result == 'success'
+      )
 
     steps:
       - id: automerge
