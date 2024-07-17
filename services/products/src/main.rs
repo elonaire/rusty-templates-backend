@@ -63,7 +63,7 @@ async fn main() -> Result<()> {
                 .allow_methods(vec![Method::GET, Method::POST]),
         );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3002").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3004").await.unwrap();
     serve(listener, app)
         .await
         .unwrap();
