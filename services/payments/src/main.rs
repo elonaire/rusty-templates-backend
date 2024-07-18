@@ -20,6 +20,7 @@ use hyper::{
     Method,
 };
 
+use rest::handlers::handle_paystack_webhook;
 // use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
 use tower_http::cors::CorsLayer;
@@ -44,7 +45,7 @@ async fn graphql_handler(
 async fn main() -> Result<()> {
     let db = Arc::new(database::connection::create_db_connection().await.unwrap());
 
-    let schema = Schema::build(Query, Mutation, EmptySubscription).finish();
+    let schema = Schema::build(Query, Mutation::default(), EmptySubscription).finish();
 
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
                     .expect("Missing the ALLOWED_SERVICES environment variable.");
@@ -53,7 +54,7 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/", post(graphql_handler))
-        // .route("/oauth/callback", get(oauth_handler))
+        .route("/paystack/webhook", post(handle_paystack_webhook))
         .layer(Extension(schema))
         .layer(Extension(db))
         .layer(
@@ -64,7 +65,7 @@ async fn main() -> Result<()> {
                 .allow_methods(vec![Method::GET, Method::POST]),
         );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3013").await.unwrap();
     serve(listener, app)
         .await
         .unwrap();
