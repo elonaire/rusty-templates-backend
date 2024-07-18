@@ -221,16 +221,12 @@ jobs:
 
   deploy_to_server:
     runs-on: ubuntu-latest
-    needs: [check_files_service_changes, check_products_service_changes, check_orders_service_changes, build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service]
+    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service]
     if: |
       always() &&
-      (
-        (needs.check_files_service_changes.outputs.files_service_should_deploy == 'true' && needs.build_and_deploy_files.result == 'success' && needs.check_products_service_changes.outputs.products_service_should_deploy == 'false' && needs.check_orders_service_changes.outputs.orders_service_should_deploy == 'false') ||
-        (needs.check_products_service_changes.outputs.products_service_should_deploy == 'true' && needs.build_and_deploy_products_service.result == 'success' && needs.check_files_service_changes.outputs.files_service_should_deploy == 'false' && needs.check_orders_service_changes.outputs.orders_service_should_deploy == 'false') ||
-        (needs.check_orders_service_changes.outputs.orders_service_should_deploy == 'true' && needs.build_and_deploy_orders_service.result == 'success' && needs.check_files_service_changes.outputs.files_service_should_deploy == 'false' && needs.check_products_service_changes.outputs.products_service_should_deploy == 'false') ||
-        (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_products_service.result == 'skipped' && needs.build_and_deploy_orders_service.result == 'skipped') ||
-        (needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_products_service.result == 'success' && needs.build_and_deploy_orders_service.result == 'success')
-      )
+      (needs.build_and_deploy_files.result != 'failure' &&
+       needs.build_and_deploy_products_service.result != 'failure' &&
+       needs.build_and_deploy_orders_service.result != 'failure')
 
     steps:
       - name: Checkout code
@@ -275,13 +271,9 @@ jobs:
     needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, deploy_to_server]
     if: |
       always() &&
-      (
-        (needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_products_service.result == 'skipped' && needs.build_and_deploy_orders_service.result == 'skipped') ||
-        (needs.build_and_deploy_products_service.result == 'success' && needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_orders_service.result == 'skipped') ||
-        (needs.build_and_deploy_orders_service.result == 'success' && needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_products_service.result == 'skipped') ||
-        (needs.build_and_deploy_files.result == 'skipped' && needs.build_and_deploy_products_service.result == 'skipped' && needs.build_and_deploy_orders_service.result == 'skipped') ||
-        (needs.build_and_deploy_files.result == 'success' && needs.build_and_deploy_products_service.result == 'success' && needs.build_and_deploy_orders_service.result == 'success')
-      )
+      (needs.build_and_deploy_files.result != 'failure' &&
+       needs.build_and_deploy_products_service.result != 'failure' &&
+       needs.build_and_deploy_orders_service.result != 'failure')
 
     steps:
       - id: automerge
