@@ -34,7 +34,6 @@ impl PaymentMutation {
                 Method::POST,
                 "https://api.paystack.co/transaction/initialize",
             )
-            // .get("https://api.github.com/user")
             .headers(req_headers)
             .json::<UserPaymentDetails>(&user_payment_details)
             .send()
