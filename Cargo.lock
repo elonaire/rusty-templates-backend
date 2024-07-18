@@ -2453,6 +2453,7 @@ dependencies = [
  "chrono",
  "dotenvy",
  "hyper 1.4.1",
+ "lib",
  "serde",
  "surrealdb",
  "tokio",
