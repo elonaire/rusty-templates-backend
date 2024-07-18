@@ -4,7 +4,7 @@ use crate::graphql::schemas::general::Product;
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use lib::{middleware::{auth::check_auth_from_acl, user::add_foreign_key_if_not_exists}, utils::{auth::{ForeignKey, User}, custom_error::ExtendedError}};
+use lib::{middleware::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists}, utils::{models::{ForeignKey, User}, custom_error::ExtendedError}};
 
 #[derive(Default)]
 pub struct ProductMutation;

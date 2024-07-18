@@ -7,6 +7,7 @@ DEFINE INDEX userIndex ON TABLE user_id COLUMNS user_id UNIQUE;
 -- A schema-full product table
 DEFINE TABLE product SCHEMAFULL;
 DEFINE FIELD name ON TABLE product TYPE string;
+DEFINE FIELD price ON TABLE product TYPE float VALUE <float>$value;
 DEFINE FIELD preview_link ON TABLE product TYPE string;
 DEFINE FIELD owner ON TABLE product TYPE record<user_id>;
 DEFINE FIELD framework ON TABLE product TYPE string
