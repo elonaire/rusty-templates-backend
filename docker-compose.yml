@@ -179,6 +179,37 @@ services:
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
 
+  rt-payments:
+    image: elonaire/rt-payments:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 200M
+    ports:
+      - "3013-3015:3013"
+    depends_on:
+      - rt-payments-db
+    networks:
+      - app-tier
+    volumes:
+      - ./services/payments/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_PAYMENTS=${DATABASE_NAME_PAYMENTS}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_PAYMENTS=${DATABASE_HOST_PAYMENTS}
+      - DATABASE_PORT_PAYMENTS=${DATABASE_PORT_PAYMENTS}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+
   rt-acl-db:
     image: surrealdb/surrealdb:v1.5.4
     restart: unless-stopped
@@ -242,8 +273,25 @@ services:
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
 
+  rt-payments-db:
+    image: surrealdb/surrealdb:v1.5.4
+    restart: unless-stopped
+    ports:
+      - 8004:8004
+    container_name: rt-payments-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8004 file:/db-data/mydatabase.db
+    volumes:
+      - rt-payments-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
 volumes:
   rt-products-db:
   rt-acl-db:
   rt-files-db:
   rt-orders-db:
+  rt-payments-db:
