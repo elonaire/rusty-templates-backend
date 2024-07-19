@@ -358,7 +358,7 @@ jobs:
 
   deploy_to_server:
     runs-on: ubuntu-latest
-    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service]
+    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service, build_and_deploy_shared_service]
     if: |
       always() &&
       (needs.build_and_deploy_files.result != 'failure' &&
@@ -407,7 +407,7 @@ jobs:
   automerge:
     runs-on: ubuntu-latest
 
-    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service, deploy_to_server]
+    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service, build_and_deploy_shared_service, deploy_to_server]
     if: |
       always() &&
       (needs.build_and_deploy_files.result != 'failure' &&

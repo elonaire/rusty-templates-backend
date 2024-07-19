@@ -342,3 +342,4 @@ volumes:
   rt-files-db:
   rt-orders-db:
   rt-payments-db:
+  rt-shared-db:
