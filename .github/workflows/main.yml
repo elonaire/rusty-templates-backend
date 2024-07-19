@@ -17,6 +17,7 @@ env:
   PRODUCTS_SERVICE_PATHS: 'services/products/'
   ORDERS_SERVICE_PATHS: 'services/orders/'
   PAYMENTS_SERVICE_PATHS: 'services/payments/'
+  SHARED_SERVICE_PATHS: 'services/shared/'
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   check_files_service_changes:
@@ -187,6 +188,48 @@ jobs:
             exit 0
           fi
 
+  check_shared_service_changes:
+    runs-on: ubuntu-latest
+    # needs: [build]
+    outputs:
+      shared_service_should_deploy: ${{ steps.confirm_changes.outputs.SHARED_SERVICE_SHOULD_DEPLOY }}
+
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read # required to checkout the code from the repo
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - id: file_changes
+        name: Check for Shared Service Changes
+        run: |
+          echo "Base SHA: ${{ github.event.pull_request.base.sha }}"
+          echo "Head SHA: ${{ github.sha }}"
+          files_temp=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          files=$(echo "$files_temp" | tr "\n" " ")
+          echo "changed_files=$files" >> "$GITHUB_OUTPUT"
+
+      - id: confirm_changes
+        name: Confirm Changes
+        shell: bash
+        run: |
+          echo "Changed files: ${{ steps.file_changes.outputs.changed_files }}"
+          echo "If you see here files that you have not modified, please update your branch with changes from main."
+
+          # Check if the modified files include this path
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.SHARED_SERVICE_PATHS }}"; then
+            # Set the output variable and exit the loop
+            echo "triggering_path is ${{ env.SHARED_SERVICE_PATHS }}"
+            echo "SHARED_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
+            cat "$GITHUB_OUTPUT"
+          else
+            echo "SHARED_SERVICE_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
   build_and_deploy_files:
     runs-on: ubuntu-latest
     needs: [check_files_service_changes]
@@ -288,6 +331,31 @@ jobs:
         run: |
           docker buildx build --build-arg SERVICE_NAME=payments --build-arg PORT=3013 -t elonaire/rt-payments:latest --push .
 
+  build_and_deploy_shared_service:
+    runs-on: ubuntu-latest
+    needs: [check_shared_service_changes]
+    if: ${{ needs.check_shared_service_changes.outputs.shared_service_should_deploy == 'true' }}
+
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read # required to checkout the code from the repo
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build the Docker image
+        run: |
+          docker buildx build --build-arg SERVICE_NAME=shared --build-arg PORT=3016 -t elonaire/rt-payments:latest --push .
+
   deploy_to_server:
     runs-on: ubuntu-latest
     needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service]
@@ -296,7 +364,8 @@ jobs:
       (needs.build_and_deploy_files.result != 'failure' &&
        needs.build_and_deploy_products_service.result != 'failure' &&
        needs.build_and_deploy_orders_service.result != 'failure' &&
-       needs.build_and_deploy_payments_service != 'failure')
+       needs.build_and_deploy_payments_service != 'failure' &&
+       needs.build_and_deploy_shared_service != 'failure')
 
     steps:
       - name: Checkout code
@@ -344,7 +413,8 @@ jobs:
       (needs.build_and_deploy_files.result != 'failure' &&
        needs.build_and_deploy_products_service.result != 'failure' &&
        needs.build_and_deploy_orders_service.result != 'failure' &&
-       needs.build_and_deploy_payments_service != 'failure')
+       needs.build_and_deploy_payments_service != 'failure' &&
+       needs.build_and_deploy_shared_service != 'failure')
 
     steps:
       - id: automerge
