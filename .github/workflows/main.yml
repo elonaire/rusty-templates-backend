@@ -354,7 +354,7 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker buildx build --build-arg SERVICE_NAME=shared --build-arg PORT=3016 -t elonaire/rt-payments:latest --push .
+          docker buildx build --build-arg SERVICE_NAME=shared --build-arg PORT=3016 -t elonaire/rt-shared:latest --push .
 
   deploy_to_server:
     runs-on: ubuntu-latest
