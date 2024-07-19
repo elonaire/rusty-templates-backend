@@ -15,8 +15,7 @@ DEFINE TABLE order SCHEMAFULL;
 DEFINE FIELD status on TABLE order TYPE string
     -- Allow only these values in the array
     ASSERT $value INSIDE ["Pending", "Confirmed", "Ready", "Completed", "Failed", "Refunded", "OnHold"];
-DEFINE FIELD created_at ON TABLE order TYPE datetime
-  DEFAULT time::now();
+DEFINE FIELD created_at ON TABLE order DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON TABLE order TYPE datetime
     VALUE time::now();
 DEFINE FIELD in ON TABLE order TYPE record<user_id>;
