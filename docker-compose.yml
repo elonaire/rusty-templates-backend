@@ -164,6 +164,7 @@ services:
       - "3010-3012:3010"
     depends_on:
       - rt-orders-db
+      - rt-acl
     networks:
       - app-tier
     volumes:
@@ -195,6 +196,7 @@ services:
       - "3013-3015:3013"
     depends_on:
       - rt-payments-db
+      - rt-acl
     networks:
       - app-tier
     volumes:
@@ -226,6 +228,7 @@ services:
       - "3016-3018:3016"
     depends_on:
       - rt-shared-db
+      - rt-acl
     networks:
       - app-tier
     volumes:
@@ -240,6 +243,25 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+
+  rt-email:
+    image: elonaire/rt-email:latest
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - 3019:3019
+    container_name: rt-email
+    depends_on:
+      - rt-acl
+    networks:
+      - app-tier
+    environment:
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_SERVER=${SMTP_SERVER}
 
   rt-acl-db:
     image: surrealdb/surrealdb:v1.5.4

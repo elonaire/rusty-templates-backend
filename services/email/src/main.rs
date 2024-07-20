@@ -1,8 +1,9 @@
 mod graphql;
-mod database;
+// mod database;
 mod rest;
 
 use std::{sync::Arc, env};
+use dotenvy::dotenv;
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -21,7 +22,7 @@ use hyper::{
 };
 
 // use serde::Deserialize;
-use surrealdb::{engine::remote::ws::Client, Result, Surreal};
+// use surrealdb::{engine::remote::ws::Client, Result, Surreal};
 use tower_http::cors::CorsLayer;
 
 use graphql::resolvers::mutation::Mutation;
@@ -30,19 +31,20 @@ type MySchema = Schema<Query, Mutation, EmptySubscription>;
 
 async fn graphql_handler(
     schema: Extension<MySchema>,
-    db: Extension<Arc<Surreal<Client>>>,
+    // db: Extension<Arc<Surreal<Client>>>,
     headers: HeaderMap,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
     let mut request = req.0;
-    request = request.data(db.clone());
+    // request = request.data(db.clone());
     request = request.data(headers.clone());
     schema.execute(request).await.into()
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    let db = Arc::new(database::connection::create_db_connection().await.unwrap());
+async fn main() -> () {
+    dotenv().ok();
+    // let db = Arc::new(database::connection::create_db_connection().await.unwrap());
 
     let schema = Schema::build(Query, Mutation::default(), EmptySubscription).finish();
 
@@ -55,7 +57,7 @@ async fn main() -> Result<()> {
         .route("/", post(graphql_handler))
         // .route("/oauth/callback", get(oauth_handler))
         .layer(Extension(schema))
-        .layer(Extension(db))
+        // .layer(Extension(db))
         .layer(
             CorsLayer::new()
                 .allow_origin(origins)
@@ -64,10 +66,10 @@ async fn main() -> Result<()> {
                 .allow_methods(vec![Method::GET, Method::POST]),
         );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3016").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3019").await.unwrap();
     serve(listener, app)
         .await
         .unwrap();
 
-    Ok(())
+    // Ok(())
 }
