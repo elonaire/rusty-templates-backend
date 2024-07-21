@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[graphql(input_name = "UserPaymentDetailsInput")]
 pub struct UserPaymentDetails {
     pub email: String,
-    pub amount: u64,
+    pub amount: f64,
     pub currency: Option<String>,
     pub metadata: Option<PaymentDetailsMetaData>,
 }

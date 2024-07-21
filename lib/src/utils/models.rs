@@ -22,3 +22,14 @@ pub struct Product {
     pub id: Option<Thing>,
     pub product_id: String,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct AuthStatus {
+    pub is_auth: bool,
+    pub sub: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetUserVar {
+    pub id: String,
+}
