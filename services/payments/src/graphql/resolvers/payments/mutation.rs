@@ -1,7 +1,7 @@
 use std::{sync::Arc, env};
 use reqwest::{header::HeaderMap as ReqWestHeaderMap, Client as ReqWestClient};
 
-use crate::graphql::schemas::general::{InitializePaymentResponse, UserPaymentDetails};
+use crate::graphql::schemas::general::{ExchangeRatesResponse, InitializePaymentResponse, UserPaymentDetails};
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use surrealdb::{engine::remote::ws::Client, Surreal};
@@ -13,7 +13,7 @@ pub struct PaymentMutation;
 
 #[Object]
 impl PaymentMutation {
-    pub async fn initiate_payment(&self, user_payment_details: UserPaymentDetails) -> Result<InitializePaymentResponse> {
+    pub async fn initiate_payment(&self, mut user_payment_details: UserPaymentDetails) -> Result<InitializePaymentResponse> {
         let client = ReqWestClient::new();
         let paystack_secret = env::var("PAYSTACK_SECRET")
                         .expect("Missing the PAYSTACK_SECRET environment variable.");
@@ -27,9 +27,22 @@ impl PaymentMutation {
             "no-cache".parse().unwrap(),
         );
 
-        println!("req_headers: {:?}", req_headers);
+        let forex_secret_key = env::var("EXCHANGE_RATES_API_KEY")
+                        .expect("Missing the EXCHANGE_RATES_API_KEY environment variable.");
 
-        let response = client
+        let forex_response = client
+            .request(
+                Method::GET,
+                format!("https://api.exchangeratesapi.io/v1/latest?access_key={}&base=USD&symbols=KES", forex_secret_key).as_str(),
+            )
+            .send()
+            .await?
+            .json::<ExchangeRatesResponse>()
+            .await?;
+
+        user_payment_details.amount = ((user_payment_details.amount * forex_response.rates.get("KES").unwrap()) * 100 as f64).ceil();
+
+        let paystack_response = client
             .request(
                 Method::POST,
                 "https://api.paystack.co/transaction/initialize",
@@ -41,8 +54,6 @@ impl PaymentMutation {
             .json::<InitializePaymentResponse>()
             .await?;
 
-        println!("response: {:?}", response);
-
-        Ok(response)
+        Ok(paystack_response)
     }
 }
