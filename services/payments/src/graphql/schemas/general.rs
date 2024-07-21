@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_graphql::{InputObject, SimpleObject};
 use serde::{Deserialize, Serialize};
 
@@ -5,7 +7,7 @@ use serde::{Deserialize, Serialize};
 #[graphql(input_name = "UserPaymentDetailsInput")]
 pub struct UserPaymentDetails {
     pub email: String,
-    pub amount: u64,
+    pub amount: f64,
     pub currency: Option<String>,
     pub metadata: Option<PaymentDetailsMetaData>,
 }
@@ -27,4 +29,13 @@ pub struct InitializePaymentResponseData {
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
 pub struct PaymentDetailsMetaData {
     pub cart_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
+pub struct ExchangeRatesResponse {
+    pub success: bool,
+    pub timestamp: u64,
+    pub base: String,
+    pub date: String,
+    pub rates: HashMap<String, f64>
 }
