@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, io::Error};
 use async_graphql::Context;
 use gql_client::Client as GQLClient;
 use hyper::HeaderMap;
-use crate::utils::models::{InitPaymentGraphQLResponse, InitializePaymentResponse, InitiatePaymentVar, UserPaymentDetails};
+use crate::utils::{graphql_api::perform_mutation_or_query_with_vars, models::{InitPaymentGraphQLResponse, InitializePaymentResponse, InitiatePaymentVar, UserPaymentDetails}};
 
 /// Integration method for Payments service, used across all the services
 pub async fn initiate_payment_integration(ctx: &Context<'_>, user_payment_details: UserPaymentDetails) -> Result<String, Error> {
@@ -30,16 +30,17 @@ pub async fn initiate_payment_integration(ctx: &Context<'_>, user_payment_detail
                     let endpoint = env::var("PAYMENTS_SERVICE")
                     .expect("Missing the PAYMENTS_SERVICE environment variable.");
 
-                    let client = GQLClient::new_with_headers(endpoint, auth_headers);
+                    // let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
-                    let payments_init_response = client.query_with_vars::<InitPaymentGraphQLResponse, InitiatePaymentVar>(gql_query, variables).await;
+                    let payments_init_response = perform_mutation_or_query_with_vars::<InitPaymentGraphQLResponse, InitiatePaymentVar>(&endpoint, gql_query, variables).await;
 
-                    match payments_init_response {
-                        Ok(payments_init_response) => {
-                            Ok(payments_init_response.unwrap().initiate_payment.data.authorization_url)
+                    match payments_init_response.get_data() {
+                        Some(payments_init_response) => {
+                            println!("data here: {:?}", payments_init_response);
+                            Ok(payments_init_response.initiate_payment.data.authorization_url.clone())
                         }
-                        Err(e) => {
-                            Err(Error::new(std::io::ErrorKind::Other, format!("ACL server not responding! {:?}", e)))
+                        None => {
+                            Err(Error::new(std::io::ErrorKind::Other, format!("ACL server not responding!")))
                         }
                     }
                 }
