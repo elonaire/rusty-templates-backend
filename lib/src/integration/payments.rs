@@ -1,9 +1,8 @@
 use std::{collections::HashMap, env, io::Error};
 
 use async_graphql::Context;
-use gql_client::Client as GQLClient;
 use hyper::HeaderMap;
-use crate::utils::{graphql_api::perform_mutation_or_query_with_vars, models::{InitPaymentGraphQLResponse, InitializePaymentResponse, InitiatePaymentVar, UserPaymentDetails}};
+use crate::utils::{graphql_api::perform_mutation_or_query_with_vars, models::{InitPaymentGraphQLResponse, InitiatePaymentVar, UserPaymentDetails}};
 
 /// Integration method for Payments service, used across all the services
 pub async fn initiate_payment_integration(ctx: &Context<'_>, user_payment_details: UserPaymentDetails) -> Result<String, Error> {

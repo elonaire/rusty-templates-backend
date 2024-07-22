@@ -1,4 +1,5 @@
-use async_graphql::{ComplexObject, Enum, InputObject, SimpleObject};
+use async_graphql::{ComplexObject, InputObject, SimpleObject};
+use lib::utils::models::OrderStatus;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
 
@@ -15,25 +16,6 @@ impl Order {
     async fn id(&self) -> String {
         self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
     }
-}
-
-
-#[derive(Clone, Debug, Serialize, Deserialize, Enum, Copy, Eq, PartialEq)]
-pub enum OrderStatus {
-    #[graphql(name = "Pending")]
-    Pending,
-    #[graphql(name = "Confirmed")]
-    Confirmed,
-    #[graphql(name = "Ready")]
-    Ready,
-    #[graphql(name = "Completed")]
-    Completed,
-    #[graphql(name = "Failed")]
-    Failed,
-    #[graphql(name = "Refunded")]
-    Refunded,
-    #[graphql(name = "OnHold")]
-    OnHold,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]

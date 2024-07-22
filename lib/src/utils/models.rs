@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
-use async_graphql::{SimpleObject, InputObject};
+use async_graphql::{Enum, InputObject, SimpleObject};
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct User {
@@ -52,7 +52,7 @@ pub struct UserPaymentDetails {
     pub email: String,
     pub amount: u64,
     // pub currency: Option<String>,
-    // pub metadata: Option<PaymentDetailsMetaData>,
+    pub metadata: Option<PaymentDetailsMetaData>,
 }
 
 #[derive(Debug, Deserialize, Serialize, SimpleObject)]
@@ -98,4 +98,61 @@ pub struct InitializePaymentGraphQLResponseData {
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
 pub struct PaymentDetailsMetaData {
     pub cart_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Enum, Copy, Eq, PartialEq)]
+pub enum OrderStatus {
+    #[graphql(name = "Pending")]
+    Pending,
+    #[graphql(name = "Confirmed")]
+    Confirmed,
+    #[graphql(name = "Ready")]
+    Ready,
+    #[graphql(name = "Completed")]
+    Completed,
+    #[graphql(name = "Failed")]
+    Failed,
+    #[graphql(name = "Refunded")]
+    Refunded,
+    #[graphql(name = "OnHold")]
+    OnHold,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateOrderVar {
+    #[serde(rename = "orderId")]
+    pub order_id: String,
+    pub status: OrderStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateOrderResponse {
+    #[serde(rename = "orderId")]
+    pub update_order: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
+#[graphql(input_name = "EmailInput")]
+pub struct Email {
+    pub recipient: EmailUser,
+    pub subject: String,
+    pub title: String,
+    pub body: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
+pub struct EmailUser {
+    pub full_name: Option<String>,
+    pub email_address: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendEmailVar {
+    pub email: Email,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendEmailResponse {
+    #[serde(rename = "sendEmail")]
+    pub send_email: String,
 }
