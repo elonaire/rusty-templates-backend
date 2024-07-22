@@ -4,14 +4,14 @@ use crate::graphql::schemas::general::{Order, Cart};
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists}, utils::{models::{ForeignKey, User}, custom_error::ExtendedError}};
+use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists, payments::initiate_payment_integration, user::get_user_email}, utils::{custom_error::ExtendedError, models::{ForeignKey, User, UserPaymentDetails}}};
 
 #[derive(Default)]
 pub struct OrderMutation;
 
 #[Object]
 impl OrderMutation {
-    pub async fn create_order(&self, ctx: &Context<'_>, cart_id: String) -> Result<Vec<Order>> {
+    pub async fn create_order(&self, ctx: &Context<'_>, cart_id: String) -> Result<String> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         let auth_res_from_acl = check_auth_from_acl(ctx).await?;
@@ -25,7 +25,8 @@ impl OrderMutation {
                 };
 
                 let buyer_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;
-                let buyer_id_raw = buyer_result.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
+                let buyer_result_clone = buyer_result.clone();
+                let buyer_id_raw = buyer_result_clone.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
 
                 let mut existing_cart_query = db
                     .query("SELECT * FROM cart WHERE archived=false AND owner=type::thing($user_id) LIMIT 1")
@@ -60,7 +61,25 @@ impl OrderMutation {
 
                         let response: Vec<Order> = create_order_transaction.take(0).unwrap();
 
-                        Ok(response)
+                        match get_user_email(ctx, buyer_result.unwrap().user_id.clone()).await  {
+                            Ok(email) => {
+                                let payment_info = UserPaymentDetails {
+                                    email,
+                                    amount: 69.00,
+                                    currency: None,
+                                    metadata: None,
+                                };
+                                match initiate_payment_integration(ctx, payment_info).await {
+                                    Ok(payment_link) => {
+                                        Ok(payment_link)
+                                    },
+                                    Err(e) => Err(ExtendedError::new(format!("Error getting payment link! {:?}", e), Some(400.to_string())).build())
+                                }
+                            },
+                            Err(e) => Err(ExtendedError::new(format!("User not found! {:?}", e), Some(400.to_string())).build())
+                        }
+
+                        // Ok(response)
                     },
                     None => Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
                 }

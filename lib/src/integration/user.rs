@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, io::Error};
 use async_graphql::Context;
 use gql_client::Client as GQLClient;
 use hyper::HeaderMap;
-use crate::utils::models::GetUserVar;
+use crate::utils::models::{GetUserResponse, GetUserVar};
 
 pub async fn get_user_email(ctx: &Context<'_>, user_id: String) -> Result<String, Error> {
     match ctx.data_opt::<HeaderMap>() {
@@ -27,14 +27,14 @@ pub async fn get_user_email(ctx: &Context<'_>, user_id: String) -> Result<String
 
                     let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
-                    let auth_response = client.query_with_vars::<String, GetUserVar>(gql_query, variables).await;
+                    let auth_response = client.query_with_vars::<GetUserResponse, GetUserVar>(gql_query, variables).await;
 
                     match auth_response {
                         Ok(auth_response) => {
-                            Ok(auth_response.unwrap())
+                            Ok(auth_response.unwrap().get_user_email)
                         }
-                        Err(_) => {
-                            Err(Error::new(std::io::ErrorKind::Other, "ACL server not responding!"))
+                        Err(e) => {
+                            Err(Error::new(std::io::ErrorKind::Other, format!("ACL server not responding! {:?}", e)))
                         }
                     }
                 }
