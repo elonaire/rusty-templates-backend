@@ -19,6 +19,7 @@ env:
   PAYMENTS_SERVICE_PATHS: 'services/payments/'
   SHARED_SERVICE_PATHS: 'services/shared/'
   EMAIL_SERVICE_PATHS: 'services/email/'
+  LIB_PATHS: 'lib/'
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   check_service_changes:
@@ -58,7 +59,7 @@ jobs:
           echo "If you see here files that you have not modified, please update your branch with changes from main."
 
           # Check if the modified files include this path
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.FILES_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.FILES_PATHS }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.FILES_PATHS }}"
             echo "FILES_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
@@ -68,7 +69,7 @@ jobs:
 
           fi
 
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PRODUCTS_SERVICE_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PRODUCTS_SERVICE_PATHS }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.PRODUCTS_SERVICE_PATHS }}"
             echo "PRODUCTS_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
@@ -78,7 +79,7 @@ jobs:
 
           fi
 
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.ORDERS_SERVICE_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.ORDERS_SERVICE_PATHS }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.ORDERS_SERVICE_PATHS }}"
             echo "ORDERS_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
@@ -88,7 +89,7 @@ jobs:
 
           fi
 
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PAYMENTS_SERVICE_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PAYMENTS_SERVICE_PATHS }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.PAYMENTS_SERVICE_PATHS }}"
             echo "PAYMENTS_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
@@ -98,7 +99,7 @@ jobs:
 
           fi
 
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.SHARED_SERVICE_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.SHARED_SERVICE_PATHS }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.SHARED_SERVICE_PATHS }}"
             echo "SHARED_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
@@ -108,7 +109,7 @@ jobs:
 
           fi
 
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.EMAIL_SERVICE_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.EMAIL_SERVICE_PATHS }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.EMAIL_SERVICE_PATHS }}"
             echo "EMAIL_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
