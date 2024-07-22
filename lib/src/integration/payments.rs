@@ -5,7 +5,7 @@ use gql_client::Client as GQLClient;
 use hyper::HeaderMap;
 use crate::utils::models::{InitPaymentGraphQLResponse, InitializePaymentResponse, InitiatePaymentVar, UserPaymentDetails};
 
-/// Integration method for Payments service
+/// Integration method for Payments service, used across all the services
 pub async fn initiate_payment_integration(ctx: &Context<'_>, user_payment_details: UserPaymentDetails) -> Result<String, Error> {
     match ctx.data_opt::<HeaderMap>() {
         Some(headers) => {
