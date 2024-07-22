@@ -50,15 +50,15 @@ pub struct InitiatePaymentVar {
 #[graphql(input_name = "UserPaymentDetailsInput")]
 pub struct UserPaymentDetails {
     pub email: String,
-    pub amount: f64,
-    pub currency: Option<String>,
-    pub metadata: Option<PaymentDetailsMetaData>,
+    pub amount: u64,
+    // pub currency: Option<String>,
+    // pub metadata: Option<PaymentDetailsMetaData>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, SimpleObject)]
 pub struct InitPaymentGraphQLResponse {
-    #[serde(rename = "InitiatePayment")]
-    pub initiate_payment: InitializePaymentResponse,
+    #[serde(rename = "initiatePayment")]
+    pub initiate_payment: InitializePaymentGraphQLResponse,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
@@ -68,9 +68,29 @@ pub struct InitializePaymentResponse {
     pub data: InitializePaymentResponseData,
 }
 
+// For GraphQL because of the camel-case convention
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct InitializePaymentGraphQLResponse {
+    pub status: bool,
+    pub message: String,
+    pub data: InitializePaymentGraphQLResponseData,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct InitializePaymentResponseData {
+    #[serde(rename = "authorization_url")]
     pub authorization_url: String,
+    #[serde(rename = "access_code")]
+    pub access_code: String,
+    pub reference: String,
+}
+
+// For GraphQL because of the camel-case convention
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct InitializePaymentGraphQLResponseData {
+    #[serde(rename = "authorizationUrl")]
+    pub authorization_url: String,
+    #[serde(rename = "accessCode")]
     pub access_code: String,
     pub reference: String,
 }

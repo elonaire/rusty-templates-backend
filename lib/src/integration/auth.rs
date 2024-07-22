@@ -18,14 +18,14 @@ pub async fn check_auth_from_acl(ctx: &Context<'_>) -> Result<DecodeTokenRespons
             match headers.get("Authorization") {
                 Some(auth_header) => {
                     let mut auth_headers = HashMap::new();
-                    auth_headers.insert("Authorization", auth_header.to_str().unwrap());
+                    auth_headers.insert("Authorization".to_string(), auth_header.to_str().unwrap().to_string());
 
                     let endpoint = env::var("OAUTH_SERVICE")
                     .expect("Missing the OAUTH_SERVICE environment variable.");
 
                     // let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
-                    let auth_response = perform_query_without_vars::<DecodeTokenResponse>(endpoint.as_str(), gql_query).await;
+                    let auth_response = perform_query_without_vars::<DecodeTokenResponse>(Some(auth_headers), endpoint.as_str(), gql_query).await;
 
                     println!("auth_response: {:?}", auth_response);
 
@@ -34,7 +34,7 @@ pub async fn check_auth_from_acl(ctx: &Context<'_>) -> Result<DecodeTokenRespons
                             Ok(auth_response.to_owned())
                         }
                         None => {
-                            Err(Error::new(std::io::ErrorKind::Other, "ACL server not responding!"))
+                            Err(Error::new(std::io::ErrorKind::Other, "ACL server not responding! check_auth_from_acl"))
                         }
                     }
                 }
