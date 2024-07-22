@@ -14,9 +14,7 @@ pub struct PaymentMutation;
 #[Object]
 impl PaymentMutation {
     pub async fn initiate_payment(&self, ctx: &Context<'_>, mut user_payment_details: UserPaymentDetails) -> Result<InitializePaymentResponse> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
-
-        let auth_status = check_auth_from_acl(ctx).await?;
+        let _auth_status = check_auth_from_acl(ctx).await?;
 
         let client = ReqWestClient::new();
         let paystack_secret = env::var("PAYSTACK_SECRET")
@@ -44,7 +42,12 @@ impl PaymentMutation {
             .json::<ExchangeRatesResponse>()
             .await?;
 
-        user_payment_details.amount = ((user_payment_details.amount * forex_response.rates.get("KES").unwrap()) * 100 as f64).ceil();
+        println!("Passes forex_response! {:?}", forex_response);
+        let conversion_rate = forex_response.rates.get("KES").unwrap();
+
+        user_payment_details.amount = (user_payment_details.amount as f64 * *conversion_rate * 100.0) as u64;
+
+        println!("user_payment_details {:?}", user_payment_details);
 
         let paystack_response = client
             .request(
@@ -57,6 +60,8 @@ impl PaymentMutation {
             .await?
             .json::<InitializePaymentResponse>()
             .await?;
+
+        println!("Passes paystack_response! {:?}", paystack_response);
 
         Ok(paystack_response)
     }

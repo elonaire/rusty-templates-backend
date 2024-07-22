@@ -63,9 +63,9 @@ impl OrderMutation {
                     Ok(email) => {
                         let payment_info = UserPaymentDetails {
                             email,
-                            amount: 69.00,
-                            currency: None,
-                            metadata: None,
+                            amount: 69,
+                            // currency: None,
+                            // metadata: None,
                         };
                         match initiate_payment_integration(ctx, payment_info).await {
                             Ok(payment_link) => {
