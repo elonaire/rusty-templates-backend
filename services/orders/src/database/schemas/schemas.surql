@@ -24,14 +24,14 @@ DEFINE FIELD out ON TABLE order TYPE record<cart>;
 -- A schema-full cart table
 DEFINE TABLE cart SCHEMAFULL;
 DEFINE FIELD archived ON TABLE cart TYPE bool DEFAULT false;
-DEFINE FIELD total_amount ON TABLE order TYPE float VALUE <float>$value;
-DEFINE FIELD updated_at ON TABLE order TYPE datetime
+DEFINE FIELD total_amount ON TABLE cart TYPE float;
+DEFINE FIELD updated_at ON TABLE cart TYPE datetime
     VALUE time::now();
-DEFINE FIELD in ON TABLE cart TYPE record<user_id>;
-DEFINE FIELD out ON TABLE cart TYPE record<cart_product>;
+DEFINE FIELD owner ON TABLE cart TYPE record<user_id>;
 
 -- A schema-full cart table
 DEFINE TABLE cart_product SCHEMAFULL;
 DEFINE FIELD quantity ON TABLE cart_product TYPE int;
-DEFINE FIELD in ON TABLE cart TYPE record<cart>;
-DEFINE FIELD out ON TABLE cart TYPE record<product_id>;
+DEFINE FIELD in ON TABLE cart_product TYPE record<cart>;
+DEFINE FIELD out ON TABLE cart_product TYPE record<product_id>;
+DEFINE INDEX productIndex ON TABLE cart_product COLUMNS in, out UNIQUE;

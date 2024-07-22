@@ -2,8 +2,7 @@ use async_graphql::{ComplexObject, Enum, InputObject, SimpleObject};
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
 
-#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
-#[graphql(input_name = "OrderInput")]
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 #[graphql(complex)]
 pub struct Order {
     #[graphql(skip)]
@@ -44,6 +43,10 @@ pub struct Cart {
     #[graphql(skip)]
     pub id: Option<Thing>,
     pub archived: Option<bool>,
+    #[graphql(skip)]
+    pub owner: Option<Thing>,
+    pub total_amount: f64,
+    pub updated_at: Option<String>,
 }
 
 #[ComplexObject]

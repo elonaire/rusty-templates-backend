@@ -5,7 +5,7 @@ use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use lettre::{message::{Attachment, Body, MultiPart, SinglePart}, transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use lib::{middleware::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists}, utils::{models::{ForeignKey, User}, custom_error::ExtendedError}};
+use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists}, utils::{models::{ForeignKey, User}, custom_error::ExtendedError}};
 
 #[derive(Default)]
 pub struct EmailMutation;
