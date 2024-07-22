@@ -42,6 +42,7 @@ pub struct GetUserResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InitiatePaymentVar {
+    #[serde(rename = "userPaymentDetails")]
     pub user_payment_details: UserPaymentDetails
 }
 
@@ -52,6 +53,12 @@ pub struct UserPaymentDetails {
     pub amount: f64,
     pub currency: Option<String>,
     pub metadata: Option<PaymentDetailsMetaData>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct InitPaymentGraphQLResponse {
+    #[serde(rename = "InitiatePayment")]
+    pub initiate_payment: InitializePaymentResponse,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]

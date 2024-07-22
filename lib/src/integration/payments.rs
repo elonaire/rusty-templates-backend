@@ -3,14 +3,14 @@ use std::{collections::HashMap, env, io::Error};
 use async_graphql::Context;
 use gql_client::Client as GQLClient;
 use hyper::HeaderMap;
-use crate::utils::models::{InitializePaymentResponse, InitiatePaymentVar, UserPaymentDetails};
+use crate::utils::models::{InitPaymentGraphQLResponse, InitializePaymentResponse, InitiatePaymentVar, UserPaymentDetails};
 
 pub async fn initiate_payment_integration(ctx: &Context<'_>, user_payment_details: UserPaymentDetails) -> Result<String, Error> {
     match ctx.data_opt::<HeaderMap>() {
         Some(headers) => {
             // check auth status from ACL service(graphql query)
             let gql_query = r#"
-                mutation PaymentMutation($userPaymentDetails: UserPaymentDetails!) {
+                mutation PaymentMutation($userPaymentDetails: UserPaymentDetailsInput!) {
                     initiatePayment(userPaymentDetails: $userPaymentDetails) {
                         data {
                             authorizationUrl
@@ -31,11 +31,11 @@ pub async fn initiate_payment_integration(ctx: &Context<'_>, user_payment_detail
 
                     let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
-                    let payments_init_response = client.query_with_vars::<InitializePaymentResponse, InitiatePaymentVar>(gql_query, variables).await;
+                    let payments_init_response = client.query_with_vars::<InitPaymentGraphQLResponse, InitiatePaymentVar>(gql_query, variables).await;
 
                     match payments_init_response {
                         Ok(payments_init_response) => {
-                            Ok(payments_init_response.unwrap().data.authorization_url)
+                            Ok(payments_init_response.unwrap().initiate_payment.data.authorization_url)
                         }
                         Err(e) => {
                             Err(Error::new(std::io::ErrorKind::Other, format!("ACL server not responding! {:?}", e)))
