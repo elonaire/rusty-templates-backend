@@ -74,6 +74,7 @@ services:
       - app-tier
     volumes:
       - ./services/files/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+      - ./uploads:/usr/src/uploads
     environment:
       - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
       - DATABASE_NAME_FILES=${DATABASE_NAME_FILES}
