@@ -46,16 +46,16 @@ pub async fn handle_paystack_webhook(
         if body.event == "charge.success".to_string() {
             println!("Charge Success Body: {:?}", body);
 
-            if let Err(e) = update_order(headers.clone(), body.data.metadata.order_id, OrderStatus::Confirmed).await {
+            if let Err(e) = update_order(headers.clone(), body.data.reference, OrderStatus::Confirmed).await {
                 eprintln!("Failed to update order: {:?}", e);
                 return Json(false);
             }
 
             let email_body = r#"
-            <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
-              <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <div style="font-family: Arial, sans-serif; background-color: #f4f4f4;">
+              <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                 <h2 style="background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 8px 8px 0 0; text-align: center;">Payment Confirmation</h2>
-                <div style="padding: 20px;">
+                <div style="padding: 10px;">
                   <p>Dear Customer,</p>
                   <p>We are pleased to inform you that we have successfully received your payment.</p>
                   <p>Here are the details of your transaction:</p>
@@ -68,7 +68,7 @@ pub async fn handle_paystack_webhook(
                   <p>Sincerely,<br/>The Company Team</p>
                 </div>
                 <div style="text-align: center; padding: 10px; font-size: 12px; color: #888888;">
-                  <p>Company Name | 123 Your Street, Your City, Country | support@company.com</p>
+                  <p>Rusty Templates | Tatu City, Kenya | info@rustytemplates.com</p>
                 </div>
               </div>
             </div>
