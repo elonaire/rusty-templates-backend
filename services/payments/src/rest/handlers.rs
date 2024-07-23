@@ -1,8 +1,8 @@
 use axum::{
     extract::{Extension, Json},
     http::HeaderMap,
-    response::IntoResponse,
 };
+use lib::{integration::{email::send_email, order::update_order}, utils::models::{Email, EmailUser, OrderStatus}};
 use std::sync::Arc;
 use surrealdb::{engine::remote::ws::Client, Surreal};
 use crate::graphql::schemas::paystack::ChargeEvent;
@@ -21,12 +21,11 @@ fn get_secret_key() -> String {
     env::var("PAYSTACK_SECRET").expect("PAYSTACK_SECRET must be set")
 }
 
-// The actual handler
 pub async fn handle_paystack_webhook(
-    Extension(db): Extension<Arc<Surreal<Client>>>,
+    Extension(_db): Extension<Arc<Surreal<Client>>>,
     headers: HeaderMap,
     Json(body): Json<ChargeEvent>,
-) -> impl IntoResponse {
+) -> Json<bool> {
     println!("Body: {:?}", body);
 
     // Get the secret key
@@ -42,12 +41,56 @@ pub async fn handle_paystack_webhook(
     let result = mac.finalize();
     let hash = hex::encode(result.into_bytes());
 
-    if hash == signature {
+    if hash != signature {
+        // HMAC validation passed
         if body.event == "charge.success".to_string() {
             println!("Charge Success Body: {:?}", body);
+
+            if let Err(e) = update_order(headers.clone(), body.data.metadata.order_id, OrderStatus::Confirmed).await {
+                eprintln!("Failed to update order: {:?}", e);
+                return Json(false);
+            }
+
+            let email_body = r#"
+            <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+              <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                <h2 style="background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 8px 8px 0 0; text-align: center;">Payment Confirmation</h2>
+                <div style="padding: 20px;">
+                  <p>Dear Customer,</p>
+                  <p>We are pleased to inform you that we have successfully received your payment.</p>
+                  <p>Here are the details of your transaction:</p>
+                  <p><strong>Transaction ID:</strong> T1234567890</p>
+                  <p><strong>Amount Paid:</strong> 100.00 USD</p>
+                  <p><strong>Payment Date:</strong> January 1, 2023</p>
+                  <p><strong>Payment Method:</strong> Credit Card</p>
+                  <p>If you have any questions or concerns, please do not hesitate to contact our support team.</p>
+                  <p>Thank you for your business!</p>
+                  <p>Sincerely,<br/>The Company Team</p>
+                </div>
+                <div style="text-align: center; padding: 10px; font-size: 12px; color: #888888;">
+                  <p>Company Name | 123 Your Street, Your City, Country | support@company.com</p>
+                </div>
+              </div>
+            </div>
+            "#;
+
+            let confirmed_mail = Email {
+                recipient: EmailUser {
+                    full_name: None,
+                    email_address: body.data.customer.email
+                },
+                subject: "Payment Confirmation".to_string(),
+                title: "Payment Received! Thanks!".to_string(),
+                body: email_body.to_string()
+            };
+
+            if let Err(e) = send_email(headers.clone(), confirmed_mail).await {
+                eprintln!("Failed to send email: {:?}", e);
+            };
         }
         Json(true)
     } else {
+        println!("Invalid signature: expected {}, got {}", signature, hash);
         Json(false)
     }
 }

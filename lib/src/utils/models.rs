@@ -128,7 +128,7 @@ pub struct UpdateOrderVar {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateOrderResponse {
-    #[serde(rename = "orderId")]
+    #[serde(rename = "updateOrder")]
     pub update_order: String,
 }
 
@@ -143,7 +143,9 @@ pub struct Email {
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
 pub struct EmailUser {
+    #[serde(rename = "fullName")]
     pub full_name: Option<String>,
+    #[serde(rename = "emailAddress")]
     pub email_address: String,
 }
 

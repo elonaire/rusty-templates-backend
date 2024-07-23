@@ -1,4 +1,4 @@
-use async_graphql::{ComplexObject, Enum, InputObject, SimpleObject};
+use async_graphql::{ComplexObject, InputObject, SimpleObject};
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
 
