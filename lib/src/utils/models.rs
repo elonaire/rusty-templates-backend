@@ -52,6 +52,7 @@ pub struct UserPaymentDetails {
     pub email: String,
     pub amount: u64,
     // pub currency: Option<String>,
+    pub reference: String,
     pub metadata: Option<PaymentDetailsMetaData>,
 }
 

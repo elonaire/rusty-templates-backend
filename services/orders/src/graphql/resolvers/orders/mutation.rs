@@ -57,14 +57,15 @@ impl OrderMutation {
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
 
-                let _response: Vec<Order> = create_order_transaction.take(0).unwrap();
+                let new_order: Vec<Order> = create_order_transaction.take(0)?;
+                println!("{:?}", new_order);
 
                 match get_user_email(ctx, buyer_result.unwrap().user_id.clone()).await  {
                     Ok(email) => {
                         let payment_info = UserPaymentDetails {
                             email,
                             amount: 69,
-                            // currency: None,
+                            reference: new_order[0].id.as_ref().map(|t| &t.id).expect("id").to_raw(),
                             metadata: Some(PaymentDetailsMetaData {
                                 cart_id: Some(cart_id),
                             }),
