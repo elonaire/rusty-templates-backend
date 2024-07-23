@@ -17,6 +17,9 @@ dotenvy = "0.15.7"
 reqwest = { version = "0.12.5", features = ["json"] }
 lib = { path = "../../lib" }
 serde_json = "1.0.120"
+hmac = "0.12.1"
+sha2 = "0.10.8"
+hex = "0.4.3"
 
 [lints.rust]
 unsafe_code = "forbid"

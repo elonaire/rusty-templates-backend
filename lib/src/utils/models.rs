@@ -97,6 +97,7 @@ pub struct InitializePaymentGraphQLResponseData {
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
 pub struct PaymentDetailsMetaData {
+    #[serde(rename = "cartId")]
     pub cart_id: Option<String>,
 }
 
