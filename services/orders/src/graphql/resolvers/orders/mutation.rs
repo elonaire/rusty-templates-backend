@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use crate::graphql::schemas::general::{Order, Cart};
+use crate::graphql::schemas::general::{Cart, Order};
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists, payments::initiate_payment_integration, user::get_user_email}, utils::{custom_error::ExtendedError, models::{ForeignKey, User, UserPaymentDetails}}};
+use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists, payments::initiate_payment_integration, user::get_user_email}, utils::{custom_error::ExtendedError, models::{ForeignKey, OrderStatus, PaymentDetailsMetaData, User, UserPaymentDetails}}};
 
 #[derive(Default)]
 pub struct OrderMutation;
@@ -57,7 +57,7 @@ impl OrderMutation {
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
 
-                let response: Vec<Order> = create_order_transaction.take(0).unwrap();
+                let _response: Vec<Order> = create_order_transaction.take(0).unwrap();
 
                 match get_user_email(ctx, buyer_result.unwrap().user_id.clone()).await  {
                     Ok(email) => {
@@ -65,7 +65,9 @@ impl OrderMutation {
                             email,
                             amount: 69,
                             // currency: None,
-                            // metadata: None,
+                            metadata: Some(PaymentDetailsMetaData {
+                                cart_id: Some(cart_id),
+                            }),
                         };
                         match initiate_payment_integration(ctx, payment_info).await {
                             Ok(payment_link) => {
@@ -75,6 +77,60 @@ impl OrderMutation {
                         }
                     },
                     Err(e) => Err(ExtendedError::new(format!("User not found! {:?}", e), Some(400.to_string())).build())
+                }
+
+                // Ok(response)
+            },
+            None => Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
+        }
+    }
+
+    pub async fn update_order(&self, ctx: &Context<'_>, order_id: String, status: OrderStatus) -> Result<String> {
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+
+        let auth_status = check_auth_from_acl(ctx).await?;
+
+        let user_fk = ForeignKey {
+            table: "user_id".into(),
+            column: "user_id".into(),
+            foreign_key: auth_status.decode_token.clone()
+        };
+
+        let buyer_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;
+        let buyer_result_clone = buyer_result.clone();
+        let buyer_id_raw = buyer_result_clone.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
+
+        let mut existing_order_query = db
+            .query("SELECT * FROM order WHERE id=type::thing($id) AND in=type::thing($user_id) LIMIT 1")
+            .bind(("user_id", format!("user_id:{}", buyer_id_raw)))
+            .bind(("id", format!("order:{}", order_id)))
+            .await
+            .map_err(|e| Error::new(e.to_string()))?;
+
+        let existing_order: Option<Order> = existing_order_query.take(0)?;
+
+        match existing_order {
+            Some(order) => {
+                let mut update_order_transaction = db
+                .query(
+                    "
+                    BEGIN TRANSACTION;
+                    LET $order = type::thing($order_id);
+                    LET $new_order = UPDATE ONLY $order SET status = $new_status;
+                    RETURN $new_order;
+                    COMMIT TRANSACTION;
+                    "
+                )
+                .bind(("order_id", format!("order:{}", order.id.as_ref().map(|t| &t.id).expect("id").to_raw())))
+                .bind(("new_status", status))
+                .await
+                .map_err(|e| Error::new(e.to_string()))?;
+
+                let response: Option<Order> = update_order_transaction.take(0)?;
+
+                match response {
+                    Some(updated_order) => Ok(format!("{:?}", updated_order.status)),
+                    None => Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
                 }
 
                 // Ok(response)
