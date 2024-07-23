@@ -1,11 +1,9 @@
-use std::{sync::Arc, env};
+use std::env;
 use reqwest::{header::HeaderMap as ReqWestHeaderMap, Client as ReqWestClient};
 
 use crate::graphql::schemas::general::ExchangeRatesResponse;
-use async_graphql::{Context, Error, Object, Result};
-use axum::Extension;
-use surrealdb::{engine::remote::ws::Client, Surreal};
-use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists}, utils::{custom_error::ExtendedError, models::{ForeignKey, InitializePaymentResponse, User, UserPaymentDetails}}};
+use async_graphql::{Context, Object, Result};
+use lib::{integration::auth::check_auth_from_acl, utils::models::{InitializePaymentResponse, UserPaymentDetails}};
 use hyper::http::Method;
 
 #[derive(Default)]

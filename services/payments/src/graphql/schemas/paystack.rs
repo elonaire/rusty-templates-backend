@@ -24,7 +24,7 @@ pub struct ChargeData {
     pub currency: String,
     #[serde(rename = "ip_address")]
     pub ip_address: String,
-    pub metadata: serde_json::Value,
+    pub metadata: ChargeMetadata,
     pub log: TransactionLog,
     pub fees: Option<u64>,
     pub customer: Customer,
@@ -88,4 +88,10 @@ pub struct Authorization {
     pub brand: String,
     #[serde(rename = "account_name")]
     pub account_name: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChargeMetadata {
+    #[serde(rename = "order_id")]
+    pub order_id: String,
 }
