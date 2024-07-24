@@ -1,20 +1,31 @@
 use axum::{
     extract::{Multipart, Extension},
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
     response::IntoResponse,
 };
+use lib::integration::auth::check_auth_from_acl;
+
 use std::{fs::File, io::Write, sync::Arc, env};
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
 use crate::graphql::schemas::general::UploadedFile;
 
-pub async fn upload(Extension(db): Extension<Arc<Surreal<Client>>>, mut multipart: Multipart) -> impl IntoResponse {
+pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Client>>>, mut multipart: Multipart) -> impl IntoResponse {
+    if let Err(e) = check_auth_from_acl(headers.clone()).await {
+        eprintln!("Failed to update order: {:?}", e);
+        return (
+            StatusCode::UNAUTHORIZED,
+            format!("Auth failed!"),
+        ).into_response()
+    }
+
     let upload_dir = env::var("FILE_UPLOADS_DIR")
     .expect("Missing the FILE_UPLOADS_DIR environment variable.");
 
     let mut total_size: u64 = 0;
     let mut filename = String::new();
     let mut mime_type = String::new();
+    let mut filepath = format!("{}/{}", &upload_dir, filename);
 
     // Ensure the directory exists
     if let Err(e) = std::fs::create_dir_all(&upload_dir) {
@@ -32,7 +43,7 @@ pub async fn upload(Extension(db): Extension<Arc<Surreal<Client>>>, mut multipar
             .file_name()
             .map(|name| name.to_string())
             .unwrap_or_else(|| "unknown".to_string());
-        let filepath = format!("{}/{}", &upload_dir, filename);
+        filepath = format!("{}/{}", &upload_dir, filename);
         // Extract the MIME type
         mime_type = field
             .content_type()
@@ -97,9 +108,13 @@ pub async fn upload(Extension(db): Extension<Arc<Surreal<Client>>>, mut multipar
     // Insert uploaded files into the database
     match db.create::<Vec<UploadedFile>>("file").content(uploaded_file.clone()).await {
         Ok(_result) => (StatusCode::CREATED, format!("Files successfully uploaded, size: {}MB", total_size / 1024 / 1024)).into_response(),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Failed to insert into database: {}", e),
-        ).into_response(),
+        Err(e) => {
+            let _ = std::fs::remove_file(&filepath);
+
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to insert into database: {}", e),
+            ).into_response()
+        },
     }
 }
