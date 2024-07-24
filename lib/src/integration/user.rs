@@ -4,6 +4,7 @@ use async_graphql::Context;
 use hyper::HeaderMap;
 use crate::utils::{graphql_api::perform_mutation_or_query_with_vars, models::{GetUserResponse, GetUserVar}};
 
+/// Get User Email integration method
 pub async fn get_user_email(ctx: &Context<'_>, user_id: String) -> Result<String, Error> {
     match ctx.data_opt::<HeaderMap>() {
         Some(headers) => {

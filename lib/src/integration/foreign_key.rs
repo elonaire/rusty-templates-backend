@@ -8,6 +8,7 @@ use surrealdb::{engine::remote::ws::Client as SurrealClient, Surreal};
 use crate::utils::models::ForeignKey;
 use serde::{Deserialize, Serialize};
 
+/// Integration method to set foreign keys in the target service database(GraphQL)
 pub async fn add_foreign_key_if_not_exists<F: for<'de> Deserialize<'de> + Serialize>(ctx: &Context<'_>, foreign_key: ForeignKey) -> Option<F> {
     let db = ctx
     .data::<Extension<Arc<Surreal<SurrealClient>>>>()
@@ -47,6 +48,7 @@ pub async fn add_foreign_key_if_not_exists<F: for<'de> Deserialize<'de> + Serial
     }
 }
 
+/// Integration method to set foreign keys in the target service database(REST)
 pub async fn add_foreign_key_if_not_exists_rest<F: for<'de> Deserialize<'de> + Serialize>(db: &Arc<Surreal<SurrealClient>>, foreign_key: ForeignKey) -> Option<F> {
     let search_query = format!("SELECT * FROM type::table($table) WHERE {} = $value LIMIT 1", foreign_key.column);
 

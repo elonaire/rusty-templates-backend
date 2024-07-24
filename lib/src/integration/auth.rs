@@ -3,6 +3,7 @@ use std::{collections::HashMap, env, io::Error};
 use hyper::HeaderMap;
 use crate::utils::{auth::DecodeTokenResponse, graphql_api::perform_query_without_vars};
 
+/// Integration method for Authentication Service
 pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<DecodeTokenResponse, Error> {
     // check auth status from ACL service(graphql query)
     let gql_query = r#"
