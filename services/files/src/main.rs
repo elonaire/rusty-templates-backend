@@ -20,6 +20,7 @@ use hyper::{
     header::{ACCEPT, ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_EXPOSE_HEADERS, AUTHORIZATION, CONTENT_TYPE, COOKIE, SET_COOKIE},
     Method,
 };
+use dotenvy::dotenv;
 
 // use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
@@ -43,6 +44,7 @@ async fn graphql_handler(
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
     let db = Arc::new(database::connection::create_db_connection().await.unwrap());
 
     let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription).finish();

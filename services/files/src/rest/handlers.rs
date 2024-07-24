@@ -4,7 +4,6 @@ use axum::{
     response::IntoResponse,
 };
 use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists_rest}, utils::models::{ForeignKey, User}};
-use dotenvy::dotenv;
 
 use std::{fs::File, io::Write, sync::Arc, env};
 use surrealdb::{engine::remote::ws::Client, Surreal};
@@ -12,7 +11,6 @@ use surrealdb::{engine::remote::ws::Client, Surreal};
 // use crate::graphql::schemas::general::UploadedFile;
 
 pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Client>>>, mut multipart: Multipart) -> impl IntoResponse {
-    dotenv().ok();
     match check_auth_from_acl(headers.clone()).await {
         Ok(auth_status) => {
             let upload_dir = env::var("FILE_UPLOADS_DIR")

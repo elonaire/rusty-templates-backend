@@ -11,7 +11,6 @@ use hmac::{Hmac, Mac};
 use sha2::Sha512;
 use std::env;
 use hex;
-use dotenvy::dotenv;
 
 // Type alias for HMAC-SHA512
 type HmacSha512 = Hmac<Sha512>;
@@ -21,7 +20,6 @@ pub async fn handle_paystack_webhook(
     headers: HeaderMap,
     Json(body): Json<ChargeEvent>,
 ) -> impl IntoResponse {
-    dotenv().ok();
     println!("Body: {:?}", body);
 
     // Get the secret key
