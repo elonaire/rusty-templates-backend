@@ -38,9 +38,15 @@ impl PaymentMutation {
                     format!("https://api.exchangeratesapi.io/v1/latest?access_key={}&base=USD&symbols=KES", forex_secret_key).as_str(),
                 )
                 .send()
-                .await?
+                .await.map_err(|e| {
+                    println!("Error sending: {:?}", e);
+                    Error::new(e.to_string())
+                })?
                 .json::<ExchangeRatesResponse>()
-                .await?;
+                .await.map_err(|e| {
+                    println!("Error deserializing: {:?}", e);
+                    Error::new(e.to_string())
+                })?;
 
             println!("Passes forex_response! {:?}", forex_response);
             let conversion_rate = forex_response.rates.get("KES").unwrap();
