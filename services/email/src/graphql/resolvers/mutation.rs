@@ -1,6 +1,4 @@
-use async_graphql::MergedObject;
-
-use super::email::mutation::EmailMutation;
+use async_graphql::{MergedObject, EmptyMutation};
 
 #[derive(MergedObject, Default)]
-pub struct Mutation(EmailMutation);
+pub struct Mutation(EmptyMutation);

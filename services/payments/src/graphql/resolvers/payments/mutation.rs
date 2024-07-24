@@ -2,7 +2,7 @@ use std::env;
 use reqwest::{header::HeaderMap as ReqWestHeaderMap, Client as ReqWestClient};
 
 use crate::graphql::schemas::general::ExchangeRatesResponse;
-use async_graphql::{Context, Object, Result};
+use async_graphql::{Context, Object, Result, Error};
 use lib::{integration::auth::check_auth_from_acl, utils::models::{InitializePaymentResponse, UserPaymentDetails}};
 use hyper::http::Method;
 
@@ -57,7 +57,10 @@ impl PaymentMutation {
             .send()
             .await?
             .json::<InitializePaymentResponse>()
-            .await?;
+            .await.map_err(|e| {
+                println!("{:?}", e);
+                Error::new(e.to_string())
+            })?;
 
         println!("Passes paystack_response! {:?}", paystack_response);
 
