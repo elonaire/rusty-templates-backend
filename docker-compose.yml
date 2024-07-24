@@ -74,6 +74,7 @@ services:
       - app-tier
     volumes:
       - ./services/files/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+      - ./uploads:/usr/src/uploads
     environment:
       - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
       - DATABASE_NAME_FILES=${DATABASE_NAME_FILES}
@@ -84,6 +85,9 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
 
   rt-products:
     image: elonaire/rt-products:latest
@@ -116,6 +120,9 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
 
   rt-acl:
     image: elonaire/acl-service:latest
@@ -147,6 +154,9 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
 
   rt-orders:
     image: elonaire/rt-orders:latest
@@ -179,6 +189,9 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
 
   rt-payments:
     image: elonaire/rt-payments:latest
@@ -211,6 +224,9 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
 
   rt-shared:
     image: elonaire/rt-shared:latest
@@ -243,6 +259,9 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
 
   rt-email:
     image: elonaire/rt-email:latest
@@ -262,6 +281,9 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_SERVER=${SMTP_SERVER}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
 
   rt-acl-db:
     image: surrealdb/surrealdb:v1.5.4

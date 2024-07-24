@@ -3,19 +3,21 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use std::{fs::File, io::Write, sync::Arc};
+use std::{fs::File, io::Write, sync::Arc, env};
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
 use crate::graphql::schemas::general::UploadedFile;
 
 pub async fn upload(Extension(db): Extension<Arc<Surreal<Client>>>, mut multipart: Multipart) -> impl IntoResponse {
-    let upload_dir = "./src/uploads/";
+    let upload_dir = env::var("FILE_UPLOADS_DIR")
+    .expect("Missing the FILE_UPLOADS_DIR environment variable.");
+
     let mut total_size: u64 = 0;
     let mut filename = String::new();
     let mut mime_type = String::new();
 
     // Ensure the directory exists
-    if let Err(e) = std::fs::create_dir_all(upload_dir) {
+    if let Err(e) = std::fs::create_dir_all(&upload_dir) {
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("Failed to create upload directory: {}", e),
@@ -30,7 +32,7 @@ pub async fn upload(Extension(db): Extension<Arc<Surreal<Client>>>, mut multipar
             .file_name()
             .map(|name| name.to_string())
             .unwrap_or_else(|| "unknown".to_string());
-        let filepath = format!("{}/{}", upload_dir, filename);
+        let filepath = format!("{}/{}", &upload_dir, filename);
         // Extract the MIME type
         mime_type = field
             .content_type()
