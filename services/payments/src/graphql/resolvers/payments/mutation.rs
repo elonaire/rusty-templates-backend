@@ -63,10 +63,13 @@ impl PaymentMutation {
                 .headers(req_headers)
                 .json::<UserPaymentDetails>(&user_payment_details)
                 .send()
-                .await?
+                .await.map_err(|e| {
+                    println!("sending error: {:?}", e);
+                    Error::new(e.to_string())
+                })?
                 .json::<InitializePaymentResponse>()
                 .await.map_err(|e| {
-                    println!("{:?}", e);
+                    println!("Decoding error: {:?}", e);
                     Error::new(e.to_string())
                 })?;
 
