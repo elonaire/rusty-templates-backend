@@ -53,7 +53,7 @@ pub struct UserPaymentDetails {
     pub amount: u64,
     // pub currency: Option<String>,
     pub reference: String,
-    pub metadata: Option<PaymentDetailsMetaData>,
+    // pub metadata: Option<PaymentDetailsMetaData>,
 }
 
 #[derive(Debug, Deserialize, Serialize, SimpleObject)]

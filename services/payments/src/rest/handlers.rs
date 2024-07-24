@@ -8,18 +8,11 @@ use surrealdb::{engine::remote::ws::Client, Surreal};
 use crate::graphql::schemas::paystack::ChargeEvent;
 use hmac::{Hmac, Mac};
 use sha2::Sha512;
-use dotenvy::dotenv;
 use std::env;
 use hex;
 
 // Type alias for HMAC-SHA512
 type HmacSha512 = Hmac<Sha512>;
-
-// Utility function to get the secret key
-fn get_secret_key() -> String {
-    dotenv().ok();
-    env::var("PAYSTACK_SECRET").expect("PAYSTACK_SECRET must be set")
-}
 
 pub async fn handle_paystack_webhook(
     Extension(_db): Extension<Arc<Surreal<Client>>>,
@@ -29,7 +22,7 @@ pub async fn handle_paystack_webhook(
     println!("Body: {:?}", body);
 
     // Get the secret key
-    let secret = get_secret_key();
+    let secret = env::var("PAYSTACK_SECRET").expect("PAYSTACK_SECRET must be set");
 
     // Retrieve the x-paystack-signature header
     let signature = headers.get("x-paystack-signature").and_then(|v| v.to_str().ok()).unwrap_or("");

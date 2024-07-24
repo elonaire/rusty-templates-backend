@@ -4,7 +4,7 @@ use crate::graphql::schemas::general::{Cart, Order};
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists, payments::initiate_payment_integration, user::get_user_email}, utils::{custom_error::ExtendedError, models::{ForeignKey, OrderStatus, PaymentDetailsMetaData, User, UserPaymentDetails}}};
+use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists, payments::initiate_payment_integration, user::get_user_email}, utils::{custom_error::ExtendedError, models::{ForeignKey, OrderStatus, User, UserPaymentDetails}}};
 
 #[derive(Default)]
 pub struct OrderMutation;
@@ -66,9 +66,9 @@ impl OrderMutation {
                             email,
                             amount: 69,
                             reference: new_order[0].id.as_ref().map(|t| &t.id).expect("id").to_raw(),
-                            metadata: Some(PaymentDetailsMetaData {
-                                cart_id: Some(cart_id),
-                            }),
+                            // metadata: Some(PaymentDetailsMetaData {
+                            //     cart_id: Some(cart_id),
+                            // }),
                         };
                         match initiate_payment_integration(ctx, payment_info).await {
                             Ok(payment_link) => {

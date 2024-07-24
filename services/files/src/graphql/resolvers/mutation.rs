@@ -1,4 +1,4 @@
-use async_graphql::MergedObject;
+use async_graphql::{MergedObject, EmptyMutation};
 
 #[derive(MergedObject, Default)]
-pub struct Mutation;
+pub struct Mutation(EmptyMutation);
