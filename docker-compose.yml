@@ -237,6 +237,7 @@ services:
       - EMAIL_SERVICE=${EMAIL_SERVICE}
       - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
 
   rt-shared:
     image: elonaire/rt-shared:latest
