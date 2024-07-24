@@ -25,6 +25,8 @@ pub async fn update_order(headers: HeaderMap, order_id: String, status: OrderSta
             let endpoint = env::var("ORDERS_SERVICE")
             .expect("Missing the ORDERS_SERVICE environment variable.");
 
+            println!("ORDERS_SERVICE: {}", endpoint);
+
             let update_order_response = perform_mutation_or_query_with_vars::<UpdateOrderResponse, UpdateOrderVar>(Some(auth_headers), &endpoint, gql_query, variables).await;
 
             println!("update_order_response {:?}", update_order_response);
@@ -35,7 +37,7 @@ pub async fn update_order(headers: HeaderMap, order_id: String, status: OrderSta
                     Ok(update_order_response.update_order.clone())
                 }
                 None => {
-                    Err(Error::new(std::io::ErrorKind::Other, format!("ACL server not responding! initiate_payment_integration")))
+                    Err(Error::new(std::io::ErrorKind::Other, format!("Orders service not responding! initiate_payment_integration")))
                 }
             }
         }

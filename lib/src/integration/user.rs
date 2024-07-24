@@ -24,6 +24,8 @@ pub async fn get_user_email(ctx: &Context<'_>, user_id: String) -> Result<String
                     let endpoint = env::var("OAUTH_SERVICE")
                     .expect("Missing the OAUTH_SERVICE environment variable.");
 
+                    println!("OAUTH_SERVICE: {}", endpoint);
+
                     // let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
                     let email_response = perform_mutation_or_query_with_vars::<GetUserResponse, GetUserVar>(Some(auth_headers), endpoint.as_str(), gql_query, variables).await;
