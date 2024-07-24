@@ -1,6 +1,7 @@
 use axum::{
     extract::{Extension, Json},
-    http::HeaderMap,
+    http::{HeaderMap, StatusCode},
+    response::IntoResponse,
 };
 use lib::{integration::{email::send_email, order::update_order}, utils::models::{Email, EmailUser, OrderStatus}};
 use std::sync::Arc;
@@ -18,7 +19,7 @@ pub async fn handle_paystack_webhook(
     Extension(_db): Extension<Arc<Surreal<Client>>>,
     headers: HeaderMap,
     Json(body): Json<ChargeEvent>,
-) -> Json<bool> {
+) -> impl IntoResponse {
     println!("Body: {:?}", body);
 
     // Get the secret key
@@ -34,14 +35,17 @@ pub async fn handle_paystack_webhook(
     let result = mac.finalize();
     let hash = hex::encode(result.into_bytes());
 
-    if hash != signature {
+    if hash == signature {
         // HMAC validation passed
         if body.event == "charge.success".to_string() {
             println!("Charge Success Body: {:?}", body);
 
             if let Err(e) = update_order(headers.clone(), body.data.reference, OrderStatus::Confirmed).await {
                 eprintln!("Failed to update order: {:?}", e);
-                return Json(false);
+                return (
+                    StatusCode::BAD_REQUEST,
+                    format!("Transaction successful but could not update order status!"),
+                ).into_response()
             }
 
             let email_body = r#"
@@ -79,11 +83,18 @@ pub async fn handle_paystack_webhook(
 
             if let Err(e) = send_email(headers.clone(), confirmed_mail).await {
                 eprintln!("Failed to send email: {:?}", e);
+                return (
+                    StatusCode::BAD_REQUEST,
+                    format!("Transaction successful but could not send email!"),
+                ).into_response()
             };
         }
-        Json(true)
+        (StatusCode::CREATED, format!("Transaction successful!")).into_response()
     } else {
         println!("Invalid signature: expected {}, got {}", signature, hash);
-        Json(false)
+        (
+            StatusCode::BAD_REQUEST,
+            format!("Transaction failed!"),
+        ).into_response()
     }
 }
