@@ -30,6 +30,11 @@ use graphql::resolvers::mutation::Mutation;
 
 type MySchema = Schema<Query, Mutation, EmptySubscription>;
 
+#[derive(Clone)]
+struct AppState {
+    pub secret: String
+}
+
 async fn graphql_handler(
     schema: Extension<MySchema>,
     db: Extension<Arc<Surreal<Client>>>,
@@ -51,12 +56,20 @@ async fn main() -> Result<()> {
 
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
                     .expect("Missing the ALLOWED_SERVICES environment variable.");
+    // Get the secret key
+    let secret = env::var("PAYSTACK_SECRET").expect("PAYSTACK_SECRET must be set");
+    println!("PAYSTACK_SECRET: {}", secret);
+
+    let state = AppState {
+        secret
+    };
 
     let origins: Vec<HeaderValue> = allowed_services_cors.as_str().split(",").into_iter().map(|endpoint| endpoint.parse::<HeaderValue>().unwrap()).collect();
 
     let app = Router::new()
         .route("/", post(graphql_handler))
         .route("/paystack/webhook", post(handle_paystack_webhook))
+        .with_state(state)
         .layer(Extension(schema))
         .layer(Extension(db))
         .layer(

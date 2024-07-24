@@ -1,12 +1,12 @@
 use axum::{
-    extract::{Extension, Json},
+    extract::{Extension, Json, State},
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
 };
 use lib::{integration::{email::send_email, order::update_order}, utils::models::{Email, EmailUser, OrderStatus}};
 use std::sync::Arc;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use crate::graphql::schemas::paystack::ChargeEvent;
+use crate::{graphql::schemas::paystack::ChargeEvent, AppState};
 use hmac::{Hmac, Mac};
 use sha2::Sha512;
 use std::env;
@@ -16,21 +16,17 @@ use hex;
 type HmacSha512 = Hmac<Sha512>;
 
 pub async fn handle_paystack_webhook(
+    State(state): State<AppState>,
     Extension(_db): Extension<Arc<Surreal<Client>>>,
     headers: HeaderMap,
     Json(body): Json<ChargeEvent>,
 ) -> impl IntoResponse {
     println!("Body: {:?}", body);
-
-    // Get the secret key
-    let secret = env::var("PAYSTACK_SECRET").expect("PAYSTACK_SECRET must be set");
-    println!("PAYSTACK_SECRET: {}", secret);
-
     // Retrieve the x-paystack-signature header
     let signature = headers.get("x-paystack-signature").and_then(|v| v.to_str().ok()).unwrap_or("");
 
     // Verify the webhook payload
-    let mut mac = HmacSha512::new_from_slice(secret.as_bytes())
+    let mut mac = HmacSha512::new_from_slice(state.secret.as_bytes())
         .expect("HMAC can take key of any size");
     mac.update(serde_json::to_string(&body).expect("Failed to serialize body").as_bytes());
     let result = mac.finalize();
