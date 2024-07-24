@@ -30,11 +30,6 @@ use graphql::resolvers::mutation::Mutation;
 
 type MySchema = Schema<Query, Mutation, EmptySubscription>;
 
-#[derive(Clone)]
-struct AppState {
-    pub upload_dir: String
-}
-
 async fn graphql_handler(
     schema: Extension<MySchema>,
     db: Extension<Arc<Surreal<Client>>>,
@@ -56,20 +51,12 @@ async fn main() -> Result<()> {
 
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
                     .expect("Missing the ALLOWED_SERVICES environment variable.");
-    let upload_dir = env::var("FILE_UPLOADS_DIR")
-    .expect("Missing the FILE_UPLOADS_DIR environment variable.");
-
-    println!("FILE_UPLOADS_DIR: {}", upload_dir);
-    let state = AppState {
-        upload_dir
-    };
 
     let origins: Vec<HeaderValue> = allowed_services_cors.as_str().split(",").into_iter().map(|endpoint| endpoint.parse::<HeaderValue>().unwrap()).collect();
 
     let app = Router::new()
         .route("/", post(graphql_handler))
         .route("/upload", post(upload))
-        .with_state(state)
         .layer(Extension(schema))
         .layer(Extension(db))
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024))
