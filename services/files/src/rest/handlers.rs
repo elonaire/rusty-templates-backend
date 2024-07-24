@@ -1,21 +1,22 @@
 use axum::{
-    extract::{Multipart, Extension, State},
+    extract::{Multipart, Extension},
     http::{StatusCode, HeaderMap},
     response::IntoResponse,
 };
 use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists_rest}, utils::models::{ForeignKey, User}};
 
-use std::{fs::File, io::Write, sync::Arc};
+use std::{env, fs::File, io::Write, sync::Arc};
 use surrealdb::{engine::remote::ws::Client, Surreal};
-
-use crate::AppState;
 
 // use crate::graphql::schemas::general::UploadedFile;
 
-pub async fn upload(State(state): State<AppState>, headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Client>>>, mut multipart: Multipart) -> impl IntoResponse {
+pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Client>>>, mut multipart: Multipart) -> impl IntoResponse {
     match check_auth_from_acl(headers.clone()).await {
         Ok(auth_status) => {
+            let upload_dir = env::var("FILE_UPLOADS_DIR")
+            .expect("Missing the FILE_UPLOADS_DIR environment variable.");
 
+            println!("FILE_UPLOADS_DIR: {}", upload_dir);
 
             let user_fk_body = ForeignKey {
                 table: "user_id".into(),
@@ -29,10 +30,10 @@ pub async fn upload(State(state): State<AppState>, headers: HeaderMap, Extension
             let mut total_size: u64 = 0;
             let mut filename = String::new();
             let mut mime_type = String::new();
-            let mut filepath = format!("{}/{}", &state.upload_dir, filename);
+            let mut filepath = format!("{}/{}", &upload_dir, filename);
 
             // Ensure the directory exists
-            if let Err(e) = std::fs::create_dir_all(&state.upload_dir) {
+            if let Err(e) = std::fs::create_dir_all(&upload_dir) {
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("Failed to create upload directory: {}", e),
@@ -47,7 +48,7 @@ pub async fn upload(State(state): State<AppState>, headers: HeaderMap, Extension
                     .file_name()
                     .map(|name| name.to_string())
                     .unwrap_or_else(|| "unknown".to_string());
-                filepath = format!("{}/{}", &state.upload_dir, filename);
+                filepath = format!("{}/{}", &upload_dir, filename);
                 // Extract the MIME type
                 mime_type = field
                     .content_type()

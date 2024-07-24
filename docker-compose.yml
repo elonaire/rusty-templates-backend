@@ -88,6 +88,8 @@ services:
       - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
       - ORDERS_SERVICE=${ORDERS_SERVICE}
       - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
 
   rt-products:
     image: elonaire/rt-products:latest
@@ -123,6 +125,8 @@ services:
       - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
       - ORDERS_SERVICE=${ORDERS_SERVICE}
       - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
 
   rt-acl:
     image: elonaire/acl-service:latest
@@ -157,6 +161,8 @@ services:
       - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
       - ORDERS_SERVICE=${ORDERS_SERVICE}
       - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
 
   rt-orders:
     image: elonaire/rt-orders:latest
@@ -192,6 +198,8 @@ services:
       - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
       - ORDERS_SERVICE=${ORDERS_SERVICE}
       - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
 
   rt-payments:
     image: elonaire/rt-payments:latest
@@ -227,6 +235,8 @@ services:
       - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
       - ORDERS_SERVICE=${ORDERS_SERVICE}
       - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
 
   rt-shared:
     image: elonaire/rt-shared:latest
@@ -262,6 +272,8 @@ services:
       - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
       - ORDERS_SERVICE=${ORDERS_SERVICE}
       - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
 
   rt-email:
     image: elonaire/rt-email:latest
@@ -284,6 +296,8 @@ services:
       - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
       - ORDERS_SERVICE=${ORDERS_SERVICE}
       - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
 
   rt-acl-db:
     image: surrealdb/surrealdb:v1.5.4
