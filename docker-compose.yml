@@ -91,6 +91,7 @@ services:
       - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
 
   rt-products:
     image: elonaire/rt-products:latest
@@ -129,6 +130,7 @@ services:
       - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
 
   rt-acl:
     image: elonaire/acl-service:latest
@@ -166,6 +168,7 @@ services:
       - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
 
   rt-orders:
     image: elonaire/rt-orders:latest
@@ -204,6 +207,7 @@ services:
       - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
 
   rt-payments:
     image: elonaire/rt-payments:latest
@@ -242,6 +246,7 @@ services:
       - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
 
   rt-shared:
     image: elonaire/rt-shared:latest
@@ -280,6 +285,7 @@ services:
       - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
 
   rt-email:
     image: elonaire/rt-email:latest
@@ -305,6 +311,7 @@ services:
       - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
 
   rt-acl-db:
     image: surrealdb/surrealdb:v1.5.4
