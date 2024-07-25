@@ -34,10 +34,22 @@ pub struct GetUserVar {
     pub id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetProductPriceVar {
+    #[serde(rename = "productId")]
+    pub product_id: String,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GetUserResponse {
     #[serde(rename = "getUserEmail")]
     pub get_user_email: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct GetProductPriceResponse {
+    #[serde(rename = "getProductPrice")]
+    pub get_product_price: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-use async_graphql::{ComplexObject, InputObject, SimpleObject};
+use async_graphql::{ComplexObject, Enum, InputObject, SimpleObject};
 use lib::utils::models::OrderStatus;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
@@ -52,4 +52,12 @@ impl CartProduct {
     async fn id(&self) -> String {
         self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Enum, Eq, Copy, PartialEq)]
+pub enum CartOperation {
+    #[graphql(name = "AddProduct")]
+    AddProduct,
+    #[graphql(name = "RemoveProduct")]
+    RemoveProduct
 }
