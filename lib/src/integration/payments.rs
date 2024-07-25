@@ -33,8 +33,6 @@ pub async fn initiate_payment_integration(ctx: &Context<'_>, user_payment_detail
                     let endpoint = env::var("PAYMENTS_SERVICE")
                     .expect("Missing the PAYMENTS_SERVICE environment variable.");
 
-                    println!("PAYMENTS_SERVICE: {}", endpoint);
-
                     let payments_init_response = perform_mutation_or_query_with_vars::<InitPaymentGraphQLResponse, InitiatePaymentVar>(Some(auth_headers), &endpoint, gql_query, variables).await;
 
                     println!("payments_init_response {:?}", payments_init_response);
