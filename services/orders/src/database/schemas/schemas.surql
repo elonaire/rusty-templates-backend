@@ -24,7 +24,7 @@ DEFINE FIELD out ON TABLE order TYPE record<cart>;
 -- A schema-full cart table
 DEFINE TABLE cart SCHEMAFULL;
 DEFINE FIELD archived ON TABLE cart TYPE bool DEFAULT false;
-DEFINE FIELD total_amount ON TABLE cart TYPE float;
+DEFINE FIELD total_amount ON TABLE cart TYPE float DEFAULT 0.00;
 DEFINE FIELD updated_at ON TABLE cart TYPE datetime
     VALUE time::now();
 DEFINE FIELD owner ON TABLE cart TYPE record<user_id>;

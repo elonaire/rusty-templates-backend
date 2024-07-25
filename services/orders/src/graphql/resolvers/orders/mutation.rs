@@ -11,7 +11,7 @@ pub struct OrderMutation;
 
 #[Object]
 impl OrderMutation {
-    pub async fn create_order(&self, ctx: &Context<'_>, cart_id: String) -> Result<String> {
+    pub async fn create_order(&self, ctx: &Context<'_>) -> Result<String> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
@@ -36,7 +36,7 @@ impl OrderMutation {
             let existing_cart: Option<Cart> = existing_cart_query.take(0)?;
 
             match existing_cart {
-                Some(_) => {
+                Some(cart) => {
                     let mut create_order_transaction = db
                     .query(
                         "
@@ -54,7 +54,7 @@ impl OrderMutation {
                     )
                     // .bind(("comment_body", comment))
                     .bind(("user_id", format!("user_id:{}", buyer_id_raw)))
-                    .bind(("cart_id", format!("cart:{}", cart_id)))
+                    .bind(("cart_id", format!("cart:{}", cart.id.as_ref().map(|t| &t.id).expect("id").to_raw())))
                     .await
                     .map_err(|e| Error::new(e.to_string()))?;
 
@@ -65,7 +65,7 @@ impl OrderMutation {
                         Ok(email) => {
                             let payment_info = UserPaymentDetails {
                                 email,
-                                amount: 69,
+                                amount: cart.total_amount as u64,
                                 reference: new_order[0].id.as_ref().map(|t| &t.id).expect("id").to_raw(),
                                 // metadata: Some(PaymentDetailsMetaData {
                                 //     cart_id: Some(cart_id),
