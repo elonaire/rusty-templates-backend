@@ -27,33 +27,13 @@ COPY . .
 RUN cargo build --release --package ${SERVICE_NAME}
 
 # Final stage: use a lightweight image
-# FROM ubuntu:latest
-# ARG DEBIAN_FRONTEND=noninteractive
-# ARG SERVICE_NAME
-# ARG PORT
-
-# ENV SERVICE_NAME=${SERVICE_NAME}
-# ENV PORT=${PORT}
-
-# # # Copy the binary from the builder stage
-# COPY --from=0 /app/target/release/${SERVICE_NAME} .
-
-# # # Expose the port
-# EXPOSE ${PORT}
-# # # Command to run
-# CMD ./${SERVICE_NAME}
-
-# Alpine
-FROM alpine:latest
+FROM ubuntu:latest
 ARG DEBIAN_FRONTEND=noninteractive
 ARG SERVICE_NAME
 ARG PORT
 
 ENV SERVICE_NAME=${SERVICE_NAME}
 ENV PORT=${PORT}
-
-# Install required dependencies on Alpine
-RUN apk add --no-cache libc6-compat
 
 # # Copy the binary from the builder stage
 COPY --from=0 /app/target/release/${SERVICE_NAME} .
