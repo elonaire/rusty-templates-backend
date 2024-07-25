@@ -27,7 +27,24 @@ COPY . .
 RUN cargo build --release --package ${SERVICE_NAME}
 
 # Final stage: use a lightweight image
-FROM ubuntu:latest
+# FROM ubuntu:latest
+# ARG DEBIAN_FRONTEND=noninteractive
+# ARG SERVICE_NAME
+# ARG PORT
+
+# ENV SERVICE_NAME=${SERVICE_NAME}
+# ENV PORT=${PORT}
+
+# # # Copy the binary from the builder stage
+# COPY --from=0 /app/target/release/${SERVICE_NAME} .
+
+# # # Expose the port
+# EXPOSE ${PORT}
+# # # Command to run
+# CMD ./${SERVICE_NAME}
+
+# Alpine
+FROM alpine:latest
 ARG DEBIAN_FRONTEND=noninteractive
 ARG SERVICE_NAME
 ARG PORT
@@ -35,15 +52,8 @@ ARG PORT
 ENV SERVICE_NAME=${SERVICE_NAME}
 ENV PORT=${PORT}
 
-# Install CA certificates in the final stage
-RUN apt update && apt install -y ca-certificates && update-ca-certificates && rm -rf /var/lib/apt/lists/*
-
-# Copy CA certificates to both common locations
-RUN ln -s /etc/ssl/certs /usr/lib/ssl/certs || true
-
-# Set environment variables to specify the correct certificate locations
-ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-ENV SSL_CERT_DIR=/usr/lib/ssl/certs
+# Install required dependencies on Alpine
+RUN apk add --no-cache libc6-compat
 
 # # Copy the binary from the builder stage
 COPY --from=0 /app/target/release/${SERVICE_NAME} .
