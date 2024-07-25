@@ -15,8 +15,6 @@ pub async fn get_product_price(product_id: String) -> Result<f64, Error> {
     let endpoint = env::var("PRODUCTS_SERVICE")
     .expect("Missing the PRODUCTS_SERVICE environment variable.");
 
-    println!("PRODUCTS_SERVICE: {}", endpoint);
-
     // let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
     let price_response = perform_mutation_or_query_with_vars::<GetProductPriceResponse, GetProductPriceVar>(None, endpoint.as_str(), gql_query, variables).await;

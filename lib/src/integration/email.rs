@@ -23,8 +23,6 @@ pub async fn send_email(headers: HeaderMap, email: Email) -> Result<String, Erro
             let endpoint = env::var("EMAIL_SERVICE")
             .expect("Missing the EMAIL_SERVICE environment variable.");
 
-            println!("EMAIL_SERVICE: {}", endpoint);
-
             let send_email_response = perform_mutation_or_query_with_vars::<SendEmailResponse, SendEmailVar>(None, &endpoint, gql_query, variables).await;
 
             println!("send_email_response {:?}", send_email_response);

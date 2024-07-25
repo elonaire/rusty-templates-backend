@@ -20,8 +20,6 @@ pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<DecodeTokenRespon
             let endpoint = env::var("OAUTH_SERVICE")
             .expect("Missing the OAUTH_SERVICE environment variable.");
 
-            println!("OAUTH_SERVICE: {}", endpoint);
-
             // let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
             let auth_response = perform_query_without_vars::<DecodeTokenResponse>(Some(auth_headers), endpoint.as_str(), gql_query).await;
