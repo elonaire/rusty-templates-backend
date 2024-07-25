@@ -16,7 +16,7 @@ impl PaymentMutation {
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let _auth_status = check_auth_from_acl(headers.clone()).await?;
 
-            let client = ReqWestClient::new();
+            let client = ReqWestClient::builder().danger_accept_invalid_certs(true).build().unwrap();
             let paystack_secret = env::var("PAYSTACK_SECRET")
                             .expect("Missing the PAYSTACK_SECRET environment variable.");
 
