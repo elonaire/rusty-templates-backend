@@ -11,7 +11,7 @@ pub struct Product {
     #[graphql(skip)]
     pub owner: Option<Thing>,
     pub name: String,
-    pub price: f64,
+    pub price: u64,
     pub preview_link: String,
     pub screenshot: String,
     pub framework: Framework,

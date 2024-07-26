@@ -7,7 +7,7 @@ DEFINE INDEX userIndex ON TABLE user_id COLUMNS user_id UNIQUE;
 -- A schema-full product table
 DEFINE TABLE product SCHEMAFULL;
 DEFINE FIELD name ON TABLE product TYPE string;
-DEFINE FIELD price ON TABLE product TYPE float VALUE <float>$value;
+DEFINE FIELD price ON TABLE product TYPE int;
 DEFINE FIELD preview_link ON TABLE product TYPE string;
 DEFINE FIELD screenshot ON TABLE product TYPE string;
 DEFINE FIELD owner ON TABLE product TYPE record<user_id>;
@@ -26,5 +26,8 @@ DEFINE FIELD use_case on TABLE product TYPE string
 
 
 /* Migrations */
--- Migration for product table
+-- Migration for product table - add new screenshot column
 UPDATE product SET screenshot = "" WHERE screenshot IS NONE;
+
+-- Migration for product table - price column(from float to int)
+UPDATE product SET price = <int>$value;

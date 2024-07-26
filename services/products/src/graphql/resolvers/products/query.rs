@@ -12,7 +12,7 @@ pub struct ProductQuery;
 
 #[Object]
 impl ProductQuery {
-    async fn get_product_price(&self, ctx: &Context<'_>, product_id: String) -> Result<f64> {
+    async fn get_product_price(&self, ctx: &Context<'_>, product_id: String) -> Result<u64> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         println!("Goes through ProductQuery");
