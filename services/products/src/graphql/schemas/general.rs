@@ -13,6 +13,7 @@ pub struct Product {
     pub name: String,
     pub price: f64,
     pub preview_link: String,
+    pub screenshot: String,
     pub framework: Framework,
     pub application_layer: ApplicationLayer,
     pub ui_framework: Option<UiFramework>,
