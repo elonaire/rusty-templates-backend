@@ -175,10 +175,9 @@ pub async fn download_file(Extension(db): Extension<Arc<Surreal<Client>>>, AxumU
 
         match file_details {
             Some(file_details) => {
-                // Determine the MIME type based on the file content or name
-                let content_type = file_details.mime_type; // Fallback to application/octet-stream
+                let content_type = file_details.mime_type;
 
-                let file_name_with_extension = file_name.to_string(); // Or better handling if you can determine an extension
+                let file_name_with_extension = file_name.to_string();
 
                 let response = Response::builder()
                     .header("Content-Disposition", format!("attachment; filename=\"{}\"", file_name_with_extension))
@@ -216,8 +215,7 @@ pub async fn get_image(Extension(db): Extension<Arc<Surreal<Client>>>, AxumUrlPa
 
         match file_details {
             Some(file_details) => {
-                // Determine the MIME type based on the file content or name
-                let content_type = file_details.mime_type; // Fallback to application/octet-stream
+                let content_type = file_details.mime_type;
 
                 let response = Response::builder()
                     .header("Content-Type", content_type.to_string())
