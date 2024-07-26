@@ -3,16 +3,11 @@ mod database;
 mod rest;
 
 use std::{sync::Arc, env};
-use crate::rest::handlers::upload;
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
-    extract::{Extension, DefaultBodyLimit},
-    http::{HeaderMap, HeaderValue},
-    routing::post,
-    Router,
-    serve
+    extract::{DefaultBodyLimit, Extension}, http::{HeaderMap, HeaderValue}, routing::{get, post}, serve, Router
 };
 
 use graphql::resolvers::query::Query;
@@ -22,6 +17,7 @@ use hyper::{
 };
 use dotenvy::dotenv;
 
+use rest::handlers::{download_file, get_image, upload};
 // use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
 use tower_http::cors::CorsLayer;
@@ -57,6 +53,8 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .route("/", post(graphql_handler))
         .route("/upload", post(upload))
+        .route("/view/:file_name", get(get_image))
+        .route("/download/:file_name", get(download_file))
         .layer(Extension(schema))
         .layer(Extension(db))
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024))
