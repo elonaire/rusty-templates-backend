@@ -1,12 +1,15 @@
 use axum::{
-    extract::{Multipart, Extension},
-    http::{StatusCode, HeaderMap},
-    response::IntoResponse,
+    extract::{Extension, Multipart, Path as AxumUrlParams},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
 };
 use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists_rest}, utils::models::{ForeignKey, User}};
+use uuid::Uuid;
 
-use std::{env, fs::File, io::Write, sync::Arc};
+use std::{env, fs::{self, File}, io::Write, path::Path, sync::Arc};
 use surrealdb::{engine::remote::ws::Client, Surreal};
+
+use crate::graphql::schemas::general::UploadedFile;
 
 // use crate::graphql::schemas::general::UploadedFile;
 
@@ -15,8 +18,6 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
         Ok(auth_status) => {
             let upload_dir = env::var("FILE_UPLOADS_DIR")
             .expect("Missing the FILE_UPLOADS_DIR environment variable.");
-
-            println!("FILE_UPLOADS_DIR: {}", upload_dir);
 
             let user_fk_body = ForeignKey {
                 table: "user_id".into(),
@@ -29,8 +30,9 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
 
             let mut total_size: u64 = 0;
             let mut filename = String::new();
+            let system_filename = Uuid::new_v4();
             let mut mime_type = String::new();
-            let mut filepath = format!("{}/{}", &upload_dir, filename);
+            let filepath = format!("{}{}", &upload_dir, system_filename);
 
             // Ensure the directory exists
             if let Err(e) = std::fs::create_dir_all(&upload_dir) {
@@ -48,7 +50,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                     .file_name()
                     .map(|name| name.to_string())
                     .unwrap_or_else(|| "unknown".to_string());
-                filepath = format!("{}/{}", &upload_dir, filename);
+                // filepath = format!("{}/{}", &upload_dir, filename);
                 // Extract the MIME type
                 mime_type = field
                     .content_type()
@@ -115,7 +117,8 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                        	owner: type::thing($user),
                        	name: $name,
                         size: $size,
-                        mime_type: $mime_type
+                        mime_type: $mime_type,
+                        system_filename: $system_filename
                     });
                     RETURN $new_file;
                     COMMIT TRANSACTION;
@@ -125,6 +128,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                 .bind(("name", filename))
                 .bind(("size", total_size))
                 .bind(("mime_type", mime_type))
+                .bind(("system_filename", format!("{}", system_filename)))
                 .await {
                 Ok(_result) => (StatusCode::CREATED, format!("Files successfully uploaded, size: {}MB", total_size / 1024 / 1024)).into_response(),
                 Err(e) => {
@@ -144,5 +148,84 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                 format!("Auth failed! {:?}", e),
             ).into_response()
         }
+    }
+}
+
+pub async fn download_file(Extension(db): Extension<Arc<Surreal<Client>>>, AxumUrlParams(file_name): AxumUrlParams<String>) -> Result<Response, StatusCode> {
+    let upload_dir = env::var("FILE_UPLOADS_DIR")
+    .expect("Missing the FILE_UPLOADS_DIR environment variable.");
+    let path = Path::new(&upload_dir).join(&file_name);
+
+    println!("{:?}", path);
+
+    if path.exists() {
+        let bytes = fs::read(&path).map_err(|_| StatusCode::NOT_FOUND)?;
+
+        let mut file_details_query = db
+            .query(
+                "
+                SELECT * FROM file WHERE system_filename=$file_name
+                "
+            )
+                .bind(("file_name", &file_name))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let file_details: Option<UploadedFile> = file_details_query.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        match file_details {
+            Some(file_details) => {
+                let content_type = file_details.mime_type;
+
+                let file_name_with_extension = file_name.to_string();
+
+                let response = Response::builder()
+                    .header("Content-Disposition", format!("attachment; filename=\"{}\"", file_name_with_extension))
+                    .header("Content-Type", content_type.to_string())
+                    .body(bytes.into())
+                    .unwrap();
+                Ok(response)
+            },
+            None => Err(StatusCode::NOT_FOUND)
+        }
+    } else {
+        Err(StatusCode::NOT_FOUND)
+    }
+}
+
+pub async fn get_image(Extension(db): Extension<Arc<Surreal<Client>>>, AxumUrlParams(file_name): AxumUrlParams<String>) -> Result<Response, StatusCode> {
+    let upload_dir = env::var("FILE_UPLOADS_DIR")
+    .expect("Missing the FILE_UPLOADS_DIR environment variable.");
+    let path = Path::new(&upload_dir).join(&file_name);
+
+    if path.exists() {
+        let bytes = fs::read(path).map_err(|_| StatusCode::NOT_FOUND)?;
+
+        let mut file_details_query = db
+            .query(
+                "
+                SELECT * FROM file WHERE system_filename=$file_name
+                "
+            )
+                .bind(("file_name", &file_name))
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let file_details: Option<UploadedFile> = file_details_query.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        match file_details {
+            Some(file_details) => {
+                let content_type = file_details.mime_type;
+
+                let response = Response::builder()
+                    .header("Content-Type", content_type.to_string())
+                    .body(bytes.into())
+                    .unwrap();
+                Ok(response)
+            },
+            None => Err(StatusCode::NOT_FOUND)
+        }
+    } else {
+        Err(StatusCode::NOT_FOUND)
     }
 }
