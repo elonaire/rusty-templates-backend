@@ -9,6 +9,7 @@ DEFINE TABLE product SCHEMAFULL;
 DEFINE FIELD name ON TABLE product TYPE string;
 DEFINE FIELD price ON TABLE product TYPE float VALUE <float>$value;
 DEFINE FIELD preview_link ON TABLE product TYPE string;
+DEFINE FIELD screenshot ON TABLE product TYPE string;
 DEFINE FIELD owner ON TABLE product TYPE record<user_id>;
 DEFINE FIELD framework ON TABLE product TYPE string
     -- Allow only these values in the array
@@ -22,3 +23,8 @@ DEFINE FIELD ui_framework ON TABLE product TYPE option<string>
 DEFINE FIELD use_case on TABLE product TYPE string
     -- Allow only these values in the array
     ASSERT $value INSIDE ["Dashboard", "Ecommerce", "Admin", "Ecommerce Admin", "Finance Admin", "IoT Admin"];
+
+
+/* Migrations */
+-- Migration for product table
+UPDATE product SET screenshot = "" WHERE screenshot IS NONE;
