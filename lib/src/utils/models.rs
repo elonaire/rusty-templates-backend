@@ -49,7 +49,7 @@ pub struct GetUserResponse {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct GetProductPriceResponse {
     #[serde(rename = "getProductPrice")]
-    pub get_product_price: f64,
+    pub get_product_price: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

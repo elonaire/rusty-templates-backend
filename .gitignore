@@ -5,3 +5,4 @@ history.txt
 /services/files/src/uploads
 prod.env
 copy-schemas.sh
+start-services.sh
