@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::graphql::schemas::general::{Cart, Order};
+use crate::graphql::{resolvers::cart::mutation::{claim_cart, set_session_cookie}, schemas::general::{Cart, Order}};
 use async_graphql::{Context, Error, Object, Result};
 use axum::{Extension, http::HeaderMap};
 use surrealdb::{engine::remote::ws::Client, Surreal};
@@ -23,13 +23,18 @@ impl OrderMutation {
                 foreign_key: auth_status.decode_token.clone()
             };
 
+            let session_id = set_session_cookie(&mut headers.clone(), ctx);
+
             let buyer_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;
             let buyer_result_clone = buyer_result.clone();
-            let buyer_id_raw = buyer_result_clone.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
+            let internal_user_id = buyer_result_clone.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
+
+            let claimed_cart = claim_cart(db, &internal_user_id, &session_id).await?;
+            println!("{:?}", claimed_cart);
 
             let mut existing_cart_query = db
                 .query("SELECT * FROM cart WHERE archived=false AND owner=type::thing($user_id) LIMIT 1")
-                .bind(("user_id", format!("user_id:{}", buyer_id_raw)))
+                .bind(("user_id", format!("user_id:{}", internal_user_id)))
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
 
@@ -53,7 +58,7 @@ impl OrderMutation {
                         "
                     )
                     // .bind(("comment_body", comment))
-                    .bind(("user_id", format!("user_id:{}", buyer_id_raw)))
+                    .bind(("user_id", format!("user_id:{}", internal_user_id)))
                     .bind(("cart_id", format!("cart:{}", cart.id.as_ref().map(|t| &t.id).expect("id").to_raw())))
                     .await
                     .map_err(|e| Error::new(e.to_string()))?;
@@ -86,7 +91,7 @@ impl OrderMutation {
                 None => Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
             }
         } else {
-            Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
+            Err(ExtendedError::new("Invalid Request!", Some(400.to_string())).build())
         }
     }
 
@@ -104,11 +109,11 @@ impl OrderMutation {
 
             let buyer_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;
             let buyer_result_clone = buyer_result.clone();
-            let buyer_id_raw = buyer_result_clone.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
+            let internal_user_id = buyer_result_clone.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
 
             let mut existing_order_query = db
                 .query("SELECT * FROM order WHERE id=type::thing($id) AND in=type::thing($user_id) LIMIT 1")
-                .bind(("user_id", format!("user_id:{}", buyer_id_raw)))
+                .bind(("user_id", format!("user_id:{}", internal_user_id)))
                 .bind(("id", format!("order:{}", order_id)))
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;

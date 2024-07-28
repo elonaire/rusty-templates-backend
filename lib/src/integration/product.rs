@@ -3,7 +3,7 @@ use std::{env, io::Error};
 use crate::utils::{graphql_api::perform_mutation_or_query_with_vars, models::{GetProductPriceResponse, GetProductPriceVar}};
 
 /// Get product price integration method
-pub async fn get_product_price(product_id: String) -> Result<f64, Error> {
+pub async fn get_product_price(product_id: String) -> Result<u64, Error> {
     let gql_query = r#"
         query ProductQuery($productId: String!) {
             getProductPrice(productId: $productId)

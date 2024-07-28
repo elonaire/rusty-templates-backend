@@ -27,7 +27,7 @@ pub struct Cart {
     pub archived: Option<bool>,
     #[graphql(skip)]
     pub owner: Option<Thing>,
-    pub total_amount: f64,
+    pub total_amount: u64,
     pub updated_at: Option<String>,
 }
 

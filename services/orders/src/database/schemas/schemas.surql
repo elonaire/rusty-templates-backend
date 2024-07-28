@@ -24,10 +24,13 @@ DEFINE FIELD out ON TABLE order TYPE record<cart>;
 -- A schema-full cart table
 DEFINE TABLE cart SCHEMAFULL;
 DEFINE FIELD archived ON TABLE cart TYPE bool DEFAULT false;
-DEFINE FIELD total_amount ON TABLE cart TYPE float DEFAULT 0.00;
+DEFINE FIELD total_amount ON TABLE cart TYPE int DEFAULT 0;
+DEFINE FIELD created_at ON TABLE cart DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON TABLE cart TYPE datetime
     VALUE time::now();
-DEFINE FIELD owner ON TABLE cart TYPE record<user_id>;
+DEFINE FIELD owner ON TABLE cart TYPE option<record<user_id>>;
+DEFINE FIELD session_id ON TABLE cart TYPE string;
+DEFINE INDEX sessionIdIndex ON TABLE cart COLUMNS session_id UNIQUE;
 
 -- A schema-full cart table
 DEFINE TABLE cart_product SCHEMAFULL;
@@ -35,3 +38,9 @@ DEFINE FIELD quantity ON TABLE cart_product TYPE int;
 DEFINE FIELD in ON TABLE cart_product TYPE record<cart>;
 DEFINE FIELD out ON TABLE cart_product TYPE record<product_id>;
 DEFINE INDEX productIndex ON TABLE cart_product COLUMNS in, out UNIQUE;
+
+/* Migrations */
+-- Migration for cart table - price column(from float to int)
+UPDATE cart SET total_amount = <int>$value;
+-- Migration for order table - add new screenshot column
+UPDATE cart SET session_id = "" WHERE session_id IS NONE;

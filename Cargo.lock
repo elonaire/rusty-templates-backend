@@ -2607,6 +2607,7 @@ dependencies = [
  "surrealdb",
  "tokio",
  "tower-http",
+ "uuid",
 ]
 
 [[package]]
