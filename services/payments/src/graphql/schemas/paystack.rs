@@ -29,7 +29,7 @@ pub struct ChargeData {
     pub fees: Option<u64>,
     pub customer: Customer,
     pub authorization: Authorization,
-    pub plan: Option<serde_json::Value>,
+    pub plan: serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
