@@ -20,7 +20,7 @@ impl ProductMutation {
             let foreign_key = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.decode_token
+                foreign_key: auth_status.check_auth.sub
             };
             let owner_result = add_foreign_key_if_not_exists::<User>(ctx, foreign_key).await;
 

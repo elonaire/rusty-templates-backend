@@ -20,7 +20,7 @@ impl RatingMutation {
             let user_fk = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.decode_token
+                foreign_key: auth_status.check_auth.sub
             };
 
             let product_fk = ForeignKey {

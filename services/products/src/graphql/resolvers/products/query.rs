@@ -38,4 +38,37 @@ impl ProductQuery {
 
         Ok(products)
     }
+
+    async fn get_products_by_ids(&self, ctx: &Context<'_>, product_ids: Vec<String>) -> Result<Vec<Product>> {
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+
+        let records = product_ids.iter().map(|product_id| format!("product:{}", product_id)).collect::<Vec<String>>();
+
+        let mut records_iter = records.iter().enumerate();
+        let mut products: Vec<Product> = vec![];
+
+        while let Some(record) = records_iter.next() {
+            let mut products_query = db
+                .query(
+                    "
+                    SELECT * FROM ONLY type::thing($product_id)
+                    "
+                )
+                .bind(("product_id", record.1))
+                .await
+                .map_err(|e| Error::new(e.to_string()))?;
+
+            let product: Option<Product> = products_query.take(0)?;
+
+            match product {
+                Some(p) => {
+                    products.push(p);
+                },
+                None => {}
+            }
+
+        }
+
+        Ok(products)
+    }
 }
