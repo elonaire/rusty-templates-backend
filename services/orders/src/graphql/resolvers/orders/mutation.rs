@@ -29,7 +29,7 @@ impl OrderMutation {
             let buyer_result_clone = buyer_result.clone();
             let internal_user_id = buyer_result_clone.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
 
-            let claimed_cart = claim_cart(db, &internal_user_id, &session_id).await?;
+            let _claimed_cart = claim_cart(db, &internal_user_id, &session_id).await?;
 
             let mut existing_cart_query = db
                 .query("SELECT * FROM cart WHERE archived=false AND owner=type::thing($user_id) LIMIT 1")

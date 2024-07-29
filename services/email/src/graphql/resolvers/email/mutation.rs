@@ -88,6 +88,9 @@ impl EmailMutation {
                     </div>
                         <!-- Footer -->
                         <div class="footer">
+                            <div style="text-align: center; padding: 10px; font-size: 12px; color: #888888;">
+                                <p>Rusty Templates | Tatu City, Kenya | info@rustytemplates.com</p>
+                            </div>
                             &copy; {current_year} Rusty Templates. All rights reserved.
                         </div>
                     </div>
