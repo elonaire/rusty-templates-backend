@@ -53,8 +53,6 @@ impl PaymentMutation {
 
             user_payment_details.amount = (user_payment_details.amount as f64 * *conversion_rate * 100.0) as u64;
 
-            println!("user_payment_details {:?}", user_payment_details);
-
             let paystack_response = client
                 .request(
                     Method::POST,
@@ -72,8 +70,6 @@ impl PaymentMutation {
                     println!("Decoding error: {:?}", e);
                     Error::new(e.to_string())
                 })?;
-
-            println!("Passes paystack_response! {:?}", paystack_response);
 
             Ok(paystack_response)
         } else {

@@ -21,17 +21,17 @@ pub async fn update_order(headers: HeaderMap, order_id: String, status: OrderSta
         Some(auth_header) => {
             let mut auth_headers = HashMap::new();
             auth_headers.insert("Authorization".to_string(), auth_header.to_str().unwrap().to_string());
+            if let Some(cookie_header) =  headers.get("Cookie") {
+                auth_headers.insert("Cookie".to_string(), cookie_header.to_str().unwrap().to_string());
+            };
 
             let endpoint = env::var("ORDERS_SERVICE")
             .expect("Missing the ORDERS_SERVICE environment variable.");
 
             let update_order_response = perform_mutation_or_query_with_vars::<UpdateOrderResponse, UpdateOrderVar>(Some(auth_headers), &endpoint, gql_query, variables).await;
 
-            println!("update_order_response {:?}", update_order_response);
-
             match update_order_response.get_data() {
                 Some(update_order_response) => {
-                    println!("data here: {:?}", update_order_response);
                     Ok(update_order_response.update_order.clone())
                 }
                 None => {

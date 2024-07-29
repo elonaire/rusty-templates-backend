@@ -28,8 +28,6 @@ impl CartQuery {
 
         let response: Vec<String> = external_product_ids_query.take(0)?;
 
-        println!("response: {:?}", response);
-
         Ok(response)
     }
 
@@ -49,8 +47,6 @@ impl CartQuery {
             .map_err(|e| Error::new(e.to_string()))?;
 
             let response: Vec<Cart> = external_product_ids_query.take(0)?;
-
-            println!("response: {:?}", response);
 
             match response.iter().nth(0) {
                 Some(cart) => Ok(cart.clone()),

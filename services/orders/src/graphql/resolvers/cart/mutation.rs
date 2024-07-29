@@ -44,7 +44,6 @@ impl CartMutation {
             let product_fk = add_foreign_key_if_not_exists::<Product>(ctx, product_fk_body).await;
             let internal_product_id = product_fk.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
             let product_price = get_product_price(external_product_id.clone()).await?;
-            println!("internal_product_id: {}", internal_product_id);
 
             match check_auth_from_acl(headers.clone()).await {
                 Ok(auth_status) => {

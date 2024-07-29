@@ -20,14 +20,16 @@ pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<CheckAuthResponse
             let mut auth_headers = HashMap::new();
             auth_headers.insert("Authorization".to_string(), auth_header.to_str().unwrap().to_string());
 
+            if let Some(cookie_header) =  headers.get("Cookie") {
+                auth_headers.insert("Cookie".to_string(), cookie_header.to_str().unwrap().to_string());
+            };
+
             let endpoint = env::var("OAUTH_SERVICE")
             .expect("Missing the OAUTH_SERVICE environment variable.");
 
             // let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
             let auth_response = perform_query_without_vars::<CheckAuthResponse>(Some(auth_headers), endpoint.as_str(), gql_query).await;
-
-            println!("auth_response: {:?}", auth_response);
 
             match auth_response.get_data() {
                 Some(auth_response) => {
