@@ -3,6 +3,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
 };
+use hyper::header::COOKIE;
 use lib::{integration::{email::send_email, order::update_order}, utils::models::{Email, EmailUser, OrderStatus}};
 use serde_json::Value;
 use std::{sync::Arc, env};
@@ -105,9 +106,14 @@ pub async fn handle_paystack_webhook(
                 if let Some(data) = body.get("data") {
                     if let Some(reference) = data.get("reference").and_then(|r| r.as_str()) {
                         println!("Charge Success Body: {:?}", data);
+                        let internal_jwt = env::var("INTERNAL_USER_JWT").expect("INTERNAL_USER_JWT must be set");
+
+                        let mut header_map = HeaderMap::new();
+                        header_map.insert("Authorization", format!("Bearer {}", &internal_jwt).as_str().parse().unwrap());
+                        header_map.insert(COOKIE, format!("t={}", &internal_jwt).as_str().parse().unwrap());
 
                         // Update order status
-                        if let Err(e) = update_order(headers.clone(), reference.to_string(), OrderStatus::Confirmed).await {
+                        if let Err(e) = update_order(header_map, reference.to_string(), OrderStatus::Confirmed).await {
                             eprintln!("Failed to update order: {:?}", e);
                             return (
                                 StatusCode::BAD_REQUEST,
@@ -133,9 +139,6 @@ pub async fn handle_paystack_webhook(
                                             <p>If you have any questions or concerns, please do not hesitate to contact our support team.</p>
                                             <p>Thank you for your business!</p>
                                             <p>Sincerely,<br/>The Company Team</p>
-                                        </div>
-                                        <div style="text-align: center; padding: 10px; font-size: 12px; color: #888888;">
-                                            <p>Rusty Templates | Tatu City, Kenya | info@rustytemplates.com</p>
                                         </div>
                                     </div>
                                 </div>
