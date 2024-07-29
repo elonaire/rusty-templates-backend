@@ -51,12 +51,14 @@ impl CartMutation {
                     let user_fk_body = ForeignKey {
                         table: "user_id".into(),
                         column: "user_id".into(),
-                        foreign_key: auth_status.decode_token
+                        foreign_key: auth_status.check_auth.sub
                     };
 
                     let user_fk = add_foreign_key_if_not_exists::<User>(ctx, user_fk_body).await;
 
                     let internal_user_id = user_fk.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
+
+                    let _claimed_cart = claim_cart(db, &internal_user_id, &session_id).await;
 
                     let mut existing_cart_query = db
                         .query("SELECT * FROM cart WHERE archived=false AND owner=type::thing($user_id) LIMIT 1")
@@ -86,7 +88,7 @@ impl CartMutation {
                                 product_price,
                                 internal_user_id: Some(internal_user_id.clone()),
                                 db_ctx: db.clone(),
-                                session_id
+                                session_id: session_id.clone()
                             };
 
                             let new_cart = create_new_cart(new_cart_args).await;

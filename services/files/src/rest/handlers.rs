@@ -22,7 +22,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
             let user_fk_body = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.decode_token
+                foreign_key: auth_status.check_auth.sub
             };
 
             let user_fk = add_foreign_key_if_not_exists_rest::<User>(&db, user_fk_body).await;

@@ -1,14 +1,17 @@
 use std::{collections::HashMap, env, io::Error};
 
 use hyper::HeaderMap;
-use crate::utils::{auth::DecodeTokenResponse, graphql_api::perform_query_without_vars};
+use crate::utils::{auth::CheckAuthResponse, graphql_api::perform_query_without_vars};
 
 /// Integration method for Authentication Service
-pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<DecodeTokenResponse, Error> {
+pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<CheckAuthResponse, Error> {
     // check auth status from ACL service(graphql query)
     let gql_query = r#"
-        mutation Mutation {
-            decodeToken
+        query Query {
+          checkAuth{
+            isAuth
+            sub
+          }
         }
     "#;
 
@@ -22,7 +25,7 @@ pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<DecodeTokenRespon
 
             // let client = GQLClient::new_with_headers(endpoint, auth_headers);
 
-            let auth_response = perform_query_without_vars::<DecodeTokenResponse>(Some(auth_headers), endpoint.as_str(), gql_query).await;
+            let auth_response = perform_query_without_vars::<CheckAuthResponse>(Some(auth_headers), endpoint.as_str(), gql_query).await;
 
             println!("auth_response: {:?}", auth_response);
 
