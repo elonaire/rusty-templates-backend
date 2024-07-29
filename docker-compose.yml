@@ -92,6 +92,7 @@ services:
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER_JWT=${INTERNAL_USER_JWT}
 
   rt-products:
     image: elonaire/rt-products:latest
@@ -131,6 +132,7 @@ services:
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER_JWT=${INTERNAL_USER_JWT}
 
   rt-acl:
     image: elonaire/acl-service:latest
@@ -169,6 +171,7 @@ services:
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER_JWT=${INTERNAL_USER_JWT}
 
   rt-orders:
     image: elonaire/rt-orders:latest
@@ -208,6 +211,7 @@ services:
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER_JWT=${INTERNAL_USER_JWT}
 
   rt-payments:
     image: elonaire/rt-payments:latest
@@ -247,6 +251,7 @@ services:
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER_JWT=${INTERNAL_USER_JWT}
 
   rt-shared:
     image: elonaire/rt-shared:latest
@@ -286,6 +291,7 @@ services:
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER_JWT=${INTERNAL_USER_JWT}
 
   rt-email:
     image: elonaire/rt-email:latest
@@ -312,6 +318,7 @@ services:
       - PAYSTACK_SECRET=${PAYSTACK_SECRET}
       - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER_JWT=${INTERNAL_USER_JWT}
 
   rt-acl-db:
     image: surrealdb/surrealdb:v1.5.4

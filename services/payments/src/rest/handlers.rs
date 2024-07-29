@@ -124,25 +124,21 @@ pub async fn handle_paystack_webhook(
                         // Construct and send confirmation email
                         let confirmed_mail = if let Some(customer) = data.get("customer") {
                             if let Some(email) = customer.get("email").and_then(|e| e.as_str()) {
-                                let email_body = r#"
+                                let email_body = format!(r#"
                                 <div style="font-family: Arial, sans-serif; background-color: #f4f4f4;">
                                     <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
                                         <h2 style="background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 8px 8px 0 0; text-align: center;">Payment Confirmation</h2>
                                         <div style="padding: 10px;">
                                             <p>Dear Customer,</p>
                                             <p>We are pleased to inform you that we have successfully received your payment.</p>
-                                            <p>Here are the details of your transaction:</p>
-                                            <p><strong>Transaction ID:</strong> T1234567890</p>
-                                            <p><strong>Amount Paid:</strong> 100.00 USD</p>
-                                            <p><strong>Payment Date:</strong> January 1, 2023</p>
-                                            <p><strong>Payment Method:</strong> Credit Card</p>
                                             <p>If you have any questions or concerns, please do not hesitate to contact our support team.</p>
                                             <p>Thank you for your business!</p>
                                             <p>Sincerely,<br/>The Company Team</p>
                                         </div>
                                     </div>
                                 </div>
-                                "#;
+                                "#
+                                );
 
                                 Some(Email {
                                     recipient: EmailUser {
