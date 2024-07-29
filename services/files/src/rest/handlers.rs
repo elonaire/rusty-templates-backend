@@ -57,8 +57,6 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                     .map(|mime| mime.to_string())
                     .unwrap_or_else(|| "application/octet-stream".to_string());
 
-                println!("MIME type: {}", mime_type);
-
                 // Create and open the file for writing
                 let mut file = match File::create(&filepath) {
                     Ok(file) => file,
@@ -100,8 +98,6 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                         format!("Failed to flush file: {}", e),
                     ).into_response();
                 }
-
-                println!("Saved file to `{}`", filepath);
             }
 
             // Insert uploaded files into the database
@@ -155,8 +151,6 @@ pub async fn download_file(Extension(db): Extension<Arc<Surreal<Client>>>, AxumU
     let upload_dir = env::var("FILE_UPLOADS_DIR")
     .expect("Missing the FILE_UPLOADS_DIR environment variable.");
     let path = Path::new(&upload_dir).join(&file_name);
-
-    println!("{:?}", path);
 
     if path.exists() {
         let bytes = fs::read(&path).map_err(|_| StatusCode::NOT_FOUND)?;

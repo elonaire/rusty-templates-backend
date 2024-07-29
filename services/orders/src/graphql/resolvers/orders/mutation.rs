@@ -30,7 +30,6 @@ impl OrderMutation {
             let internal_user_id = buyer_result_clone.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
 
             let claimed_cart = claim_cart(db, &internal_user_id, &session_id).await?;
-            println!("{:?}", claimed_cart);
 
             let mut existing_cart_query = db
                 .query("SELECT * FROM cart WHERE archived=false AND owner=type::thing($user_id) LIMIT 1")
@@ -64,7 +63,6 @@ impl OrderMutation {
                     .map_err(|e| Error::new(e.to_string()))?;
 
                     let new_order: Vec<Order> = create_order_transaction.take(0)?;
-                    println!("{:?}", new_order);
 
                     match get_user_email(ctx, buyer_result.unwrap().user_id.clone()).await  {
                         Ok(email) => {

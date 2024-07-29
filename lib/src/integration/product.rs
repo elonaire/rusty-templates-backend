@@ -19,7 +19,6 @@ pub async fn get_product_price(product_id: String) -> Result<u64, Error> {
 
     match price_response.get_data() {
         Some(price_response) => {
-            println!("price_response {:?}", price_response);
             Ok(price_response.to_owned().get_product_price.clone())
         }
         None => {

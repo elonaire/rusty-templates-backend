@@ -21,6 +21,9 @@ pub async fn get_user_email(ctx: &Context<'_>, user_id: String) -> Result<String
                 Some(auth_header) => {
                     let mut auth_headers = HashMap::new();
                     auth_headers.insert("Authorization".to_string(), auth_header.to_str().unwrap().to_string());
+                    if let Some(cookie_header) =  headers.get("Cookie") {
+                        auth_headers.insert("Cookie".to_string(), cookie_header.to_str().unwrap().to_string());
+                    };
 
                     let endpoint = env::var("OAUTH_SERVICE")
                     .expect("Missing the OAUTH_SERVICE environment variable.");
@@ -29,7 +32,6 @@ pub async fn get_user_email(ctx: &Context<'_>, user_id: String) -> Result<String
 
                     match email_response.get_data() {
                         Some(email_response) => {
-                            println!("email_response {:?}", email_response);
                             Ok(email_response.to_owned().get_user_email.clone())
                         }
                         None => {

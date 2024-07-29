@@ -29,17 +29,17 @@ pub async fn initiate_payment_integration(ctx: &Context<'_>, user_payment_detail
                 Some(auth_header) => {
                     let mut auth_headers = HashMap::new();
                     auth_headers.insert("Authorization".to_string(), auth_header.to_str().unwrap().to_string());
+                    if let Some(cookie_header) =  headers.get("Cookie") {
+                        auth_headers.insert("Cookie".to_string(), cookie_header.to_str().unwrap().to_string());
+                    };
 
                     let endpoint = env::var("PAYMENTS_SERVICE")
                     .expect("Missing the PAYMENTS_SERVICE environment variable.");
 
                     let payments_init_response = perform_mutation_or_query_with_vars::<InitPaymentGraphQLResponse, InitiatePaymentVar>(Some(auth_headers), &endpoint, gql_query, variables).await;
 
-                    println!("payments_init_response {:?}", payments_init_response);
-
                     match payments_init_response.get_data() {
                         Some(payments_init_response) => {
-                            println!("data here: {:?}", payments_init_response);
                             Ok(payments_init_response.initiate_payment.data.authorization_url.clone())
                         }
                         None => {
