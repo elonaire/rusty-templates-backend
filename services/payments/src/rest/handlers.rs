@@ -99,7 +99,7 @@ pub async fn handle_paystack_webhook(
     //     ).into_response()
     // }
 
-    if hash == signature {
+    if hash != signature {
         // HMAC validation passed
         if let Some(event) = body.get("event").and_then(|e| e.as_str()) {
             if event == "charge.success" {
@@ -110,7 +110,7 @@ pub async fn handle_paystack_webhook(
 
                         let mut header_map = HeaderMap::new();
                         header_map.insert("Authorization", format!("Bearer {}", &internal_jwt).as_str().parse().unwrap());
-                        header_map.insert(COOKIE, format!("t={}", &internal_jwt).as_str().parse().unwrap());
+                        header_map.insert(COOKIE, format!("oauth_client=;t={}", &internal_jwt).as_str().parse().unwrap());
 
                         // Update order status
                         if let Err(e) = update_order(header_map, reference.to_string(), OrderStatus::Confirmed).await {
@@ -131,9 +131,10 @@ pub async fn handle_paystack_webhook(
                                         <div style="padding: 10px;">
                                             <p>Dear Customer,</p>
                                             <p>We are pleased to inform you that we have successfully received your payment.</p>
+                                            <p>You will receive a download link shortly.</p>
                                             <p>If you have any questions or concerns, please do not hesitate to contact our support team.</p>
-                                            <p>Thank you for your business!</p>
-                                            <p>Sincerely,<br/>The Company Team</p>
+                                            <p>Thank you for your purchase!</p>
+                                            <p>Sincerely,<br/>The Rusty Templates Team</p>
                                         </div>
                                     </div>
                                 </div>
