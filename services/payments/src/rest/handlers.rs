@@ -48,7 +48,7 @@ pub async fn handle_paystack_webhook(
                             header_map.insert(COOKIE, format!("oauth_client=;t={}", &internal_jwt).as_str().parse().unwrap());
 
                             // Update order status
-                            if let Err(e) = update_order(header_map, reference.to_string(), OrderStatus::Confirmed).await {
+                            if let Err(e) = update_order(header_map.clone(), reference.to_string(), OrderStatus::Confirmed).await {
                                 eprintln!("Failed to update order: {:?}", e);
                                 // return (
                                 //     StatusCode::BAD_REQUEST,
@@ -93,7 +93,7 @@ pub async fn handle_paystack_webhook(
                             };
 
                             if let Some(email) = confirmed_mail {
-                                if let Err(e) = send_email(headers.clone(), email).await {
+                                if let Err(e) = send_email(header_map.clone(), email).await {
                                     eprintln!("Failed to send email: {:?}", e);
                                     // return (
                                     //     StatusCode::BAD_REQUEST,
