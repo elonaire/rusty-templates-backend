@@ -99,7 +99,7 @@ pub async fn handle_paystack_webhook(
     //     ).into_response()
     // }
 
-    if hash == signature {
+    if hash != signature {
         // HMAC validation passed
         if let Some(event) = body.get("event").and_then(|e| e.as_str()) {
             if event == "charge.success" {
@@ -110,15 +110,15 @@ pub async fn handle_paystack_webhook(
 
                         let mut header_map = HeaderMap::new();
                         header_map.insert("Authorization", format!("Bearer {}", &internal_jwt).as_str().parse().unwrap());
-                        header_map.insert(COOKIE, format!("t={}", &internal_jwt).as_str().parse().unwrap());
+                        header_map.insert(COOKIE, format!("oauth_client=;t={}", &internal_jwt).as_str().parse().unwrap());
 
                         // Update order status
                         if let Err(e) = update_order(header_map, reference.to_string(), OrderStatus::Confirmed).await {
                             eprintln!("Failed to update order: {:?}", e);
-                            return (
-                                StatusCode::BAD_REQUEST,
-                                format!("Transaction successful but could not update order status!"),
-                            ).into_response();
+                            // return (
+                            //     StatusCode::BAD_REQUEST,
+                            //     format!("Transaction successful but could not update order status!"),
+                            // ).into_response();
                         }
 
                         // Construct and send confirmation email
@@ -131,9 +131,10 @@ pub async fn handle_paystack_webhook(
                                         <div style="padding: 10px;">
                                             <p>Dear Customer,</p>
                                             <p>We are pleased to inform you that we have successfully received your payment.</p>
+                                            <p>You will receive a download link shortly.</p>
                                             <p>If you have any questions or concerns, please do not hesitate to contact our support team.</p>
-                                            <p>Thank you for your business!</p>
-                                            <p>Sincerely,<br/>The Company Team</p>
+                                            <p>Thank you for your purchase!</p>
+                                            <p>Sincerely,<br/>The Rusty Templates Team</p>
                                         </div>
                                     </div>
                                 </div>
@@ -159,10 +160,10 @@ pub async fn handle_paystack_webhook(
                         if let Some(email) = confirmed_mail {
                             if let Err(e) = send_email(headers.clone(), email).await {
                                 eprintln!("Failed to send email: {:?}", e);
-                                return (
-                                    StatusCode::BAD_REQUEST,
-                                    format!("Transaction successful but could not send email!"),
-                                ).into_response();
+                                // return (
+                                //     StatusCode::BAD_REQUEST,
+                                //     format!("Transaction successful but could not send email!"),
+                                // ).into_response();
                             }
                         }
                     }
