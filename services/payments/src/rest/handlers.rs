@@ -115,10 +115,10 @@ pub async fn handle_paystack_webhook(
                         // Update order status
                         if let Err(e) = update_order(header_map, reference.to_string(), OrderStatus::Confirmed).await {
                             eprintln!("Failed to update order: {:?}", e);
-                            return (
-                                StatusCode::BAD_REQUEST,
-                                format!("Transaction successful but could not update order status!"),
-                            ).into_response();
+                            // return (
+                            //     StatusCode::BAD_REQUEST,
+                            //     format!("Transaction successful but could not update order status!"),
+                            // ).into_response();
                         }
 
                         // Construct and send confirmation email
@@ -160,10 +160,10 @@ pub async fn handle_paystack_webhook(
                         if let Some(email) = confirmed_mail {
                             if let Err(e) = send_email(headers.clone(), email).await {
                                 eprintln!("Failed to send email: {:?}", e);
-                                return (
-                                    StatusCode::BAD_REQUEST,
-                                    format!("Transaction successful but could not send email!"),
-                                ).into_response();
+                                // return (
+                                //     StatusCode::BAD_REQUEST,
+                                //     format!("Transaction successful but could not send email!"),
+                                // ).into_response();
                             }
                         }
                     }
