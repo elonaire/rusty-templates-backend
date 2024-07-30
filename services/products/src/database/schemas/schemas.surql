@@ -31,3 +31,10 @@ UPDATE product SET screenshot = "" WHERE screenshot IS NONE;
 
 -- Migration for product table - price column(from float to int)
 UPDATE product SET price = <int>$value;
+
+-- A schema-full license table
+DEFINE TABLE license SCHEMAFULL;
+DEFINE FIELD name ON TABLE license TYPE string
+    -- Allow only these values in the array
+    ASSERT $value INSIDE ["Standard", "Plus", "Extended"];
+DEFINE FIELD price_factor ON TABLE license TYPE float;
