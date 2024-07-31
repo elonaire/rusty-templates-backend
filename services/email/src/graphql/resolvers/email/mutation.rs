@@ -29,6 +29,8 @@ impl EmailMutation {
         // let logo_image = fs::read("https://imagedelivery.net/fa3SWf5GIAHiTnHQyqU8IQ/5d0feb5f-2b15-4b86-9cf3-1f99372f4600/public")?;
         let logo_image = reqwest::get("https://imagedelivery.net/fa3SWf5GIAHiTnHQyqU8IQ/01f762dc-20a6-4842-30fb-2b2401c66200/public").await?.bytes().await?;
 
+        println!("logo_image: {:?}", logo_image);
+
         let email_body = format!(r#"
             <!DOCTYPE html>
             <html lang="en">
