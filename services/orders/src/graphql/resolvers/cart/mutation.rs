@@ -14,6 +14,7 @@ struct UpdateCartArgs {
     pub cart_operation: CartOperation,
     pub product_price: u64,
     pub db_ctx: Extension<Arc<Surreal<Client>>>,
+    pub license_id: String,
 }
 
 struct NewCartArgs {
@@ -22,6 +23,7 @@ struct NewCartArgs {
     pub internal_user_id: Option<String>,
     pub db_ctx: Extension<Arc<Surreal<Client>>>,
     pub session_id: String,
+    pub license_id: String,
 }
 
 #[derive(Default)]
@@ -29,7 +31,7 @@ pub struct CartMutation;
 
 #[Object]
 impl CartMutation {
-    pub async fn create_or_update_cart(&self, ctx: &Context<'_>, external_product_id: String, cart_operation: CartOperation) -> Result<Cart> {
+    pub async fn create_or_update_cart(&self, ctx: &Context<'_>, external_product_id: String, cart_operation: CartOperation, license_id: String) -> Result<Cart> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
@@ -75,19 +77,24 @@ impl CartMutation {
                                 cart_operation: cart_operation.clone(),
                                 product_price,
                                 db_ctx: db.clone(),
+                                license_id: license_id.clone(),
                             };
 
                             let updated_cart = update_existing_cart(update_args).await;
 
+                            println!("{:?}", updated_cart);
+
                             updated_cart
                         },
                         None => {
+
                             let new_cart_args = NewCartArgs {
                                 internal_product_id: internal_product_id.clone(),
                                 product_price,
                                 internal_user_id: Some(internal_user_id.clone()),
                                 db_ctx: db.clone(),
-                                session_id: session_id.clone()
+                                session_id: session_id.clone(),
+                                license_id: license_id.clone(),
                             };
 
                             let new_cart = create_new_cart(new_cart_args).await;
@@ -113,6 +120,7 @@ impl CartMutation {
                                 cart_operation: cart_operation.clone(),
                                 product_price,
                                 db_ctx: db.clone(),
+                                license_id: license_id.clone(),
                             };
 
                             let updated_cart = update_existing_cart(update_args).await;
@@ -125,7 +133,8 @@ impl CartMutation {
                                 product_price,
                                 internal_user_id: None,
                                 db_ctx: db.clone(),
-                                session_id
+                                session_id,
+                                license_id: license_id.clone(),
                             };
 
                             let new_cart = create_new_cart(new_cart_args).await;
@@ -154,19 +163,28 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
                 LET $product = type::thing($product_id);
                 LET $cart = type::thing($cart_id);
                 LET $cart_product = (SELECT * FROM cart_product WHERE out = $product AND in = $cart);
+                LET $license = (SELECT id, price_factor FROM ONLY type::thing($license_id));
                 LET $updated_quantity = IF array::len($cart_product) > 0
                	{
 
               		LET $found_product = $cart_product[0].id;
+                    LET $prev_license_factor = (SELECT VALUE price_factor FROM ONLY $cart_product[0].license);
 
-              		LET $updates = (UPDATE $found_product SET quantity += 1 RETURN AFTER);
+              		-- LET $updates = (UPDATE $found_product SET quantity += 1 RETURN AFTER);
+                    LET $removed_amount = $prev_license_factor * $product_price;
+                    UPDATE $cart SET total_amount -= $removed_amount RETURN AFTER;
 
-              		RETURN $updates[0].quantity;
+              		LET $updates_license = (UPDATE $found_product SET license = $license.id RETURN AFTER);
 
-                } ELSE {
+              		RETURN $updates_license[0].quantity;
+
+                }
+                ELSE
+               	{
 
               		LET $updates = (RELATE $cart -> cart_product -> $product CONTENT {
              			in: $cart,
+             			license: $license.id,
              			out: $product,
              			quantity: 1
               		} RETURN AFTER);
@@ -175,8 +193,8 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
 
                 }
                 ;
-                -- LET $total_amount = $updated_quantity * $product_price;
-                LET $updated_cart = (UPDATE $cart SET total_amount += $product_price  RETURN AFTER);
+                LET $total_amount = $product_price * $license.price_factor;
+                LET $updated_cart = (UPDATE $cart SET total_amount += $total_amount RETURN AFTER);
                 RETURN $updated_cart;
                 COMMIT TRANSACTION;
                 "
@@ -184,6 +202,7 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
             .bind(("product_price", args.product_price))
             .bind(("product_id", format!("product_id:{}", args.internal_product_id)))
             .bind(("cart_id", format!("cart:{}", cart_id_raw)))
+            .bind(("license_id", format!("license:{}", args.license_id)))
             .await
             .map_err(|e| Error::new(e.to_string()))?;
 
@@ -197,10 +216,11 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
                 BEGIN TRANSACTION;
                 LET $product = type::thing($product_id);
                 LET $cart = type::thing($cart_id);
+                LET $license = (SELECT id, price_factor FROM ONLY type::thing($license_id));
 
                 LET $product_exists = (SELECT quantity FROM cart_product WHERE out = $product AND in = $cart);
                 IF $product_exists[0].quantity > 0 {
-                    UPDATE $cart SET total_amount -= ($product_exists[0].quantity * $product_price);
+                    UPDATE $cart SET total_amount -= ($product_exists[0].quantity * $product_price * $license.price_factor);
                     DELETE $cart->cart_product WHERE out=$product;
                 };
 
@@ -213,6 +233,7 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
             .bind(("product_price", args.product_price))
             .bind(("product_id", format!("product_id:{}", args.internal_product_id)))
             .bind(("cart_id", format!("cart:{}", cart_id_raw)))
+            .bind(("license_id", format!("license:{}", args.license_id)))
             .await
             .map_err(|e| Error::new(e.to_string()))?;
 
@@ -233,16 +254,19 @@ async fn create_new_cart(args: NewCartArgs) -> Result<Cart> {
         } ELSE {
             type::thing($user)
         };
+        LET $license = (SELECT id, price_factor FROM ONLY type::thing($license_id));
+
         LET $new_cart = (CREATE cart CONTENT {
            	owner: $owner,
-           	total_amount: $product_price,
+           	total_amount: $product_price * $license.price_factor,
             session_id: $session_id
         });
         LET $cart_id = (SELECT VALUE id FROM $new_cart)[0];
         RELATE $cart_id-> cart_product -> $product CONTENT {
             quantity: 1,
             in: $cart_id,
-            out: $product
+            out: $product,
+            license: $license.id
         };
         RETURN $new_cart;
         COMMIT TRANSACTION;
@@ -254,6 +278,7 @@ async fn create_new_cart(args: NewCartArgs) -> Result<Cart> {
     .bind(("product_id", format!("product_id:{}", args.internal_product_id)))
     .bind(("user", match args.internal_user_id { Some(id) => format!("user_id:{}", id), None => "".to_string() } ))
     .bind(("session_id", args.session_id))
+    .bind(("license_id", format!("license:{}", args.license_id)))
     .await
     .map_err(|e| Error::new(e.to_string()))?;
 

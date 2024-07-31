@@ -34,13 +34,32 @@ DEFINE INDEX sessionIdIndex ON TABLE cart COLUMNS session_id UNIQUE;
 
 -- A schema-full cart table
 DEFINE TABLE cart_product SCHEMAFULL;
-DEFINE FIELD quantity ON TABLE cart_product TYPE int;
+DEFINE FIELD quantity ON TABLE cart_product TYPE int
+    ASSERT $value <= 1;
+DEFINE FIELD license ON TABLE cart_product TYPE record<license>;
 DEFINE FIELD in ON TABLE cart_product TYPE record<cart>;
 DEFINE FIELD out ON TABLE cart_product TYPE record<product_id>;
 DEFINE INDEX productIndex ON TABLE cart_product COLUMNS in, out UNIQUE;
 
+-- A schema-full license table
+DEFINE TABLE license SCHEMAFULL;
+DEFINE FIELD name ON TABLE license TYPE string
+    -- Allow only these values in the array
+    ASSERT $value INSIDE ["Standard", "Plus", "Extended"];
+DEFINE FIELD price_factor ON TABLE license TYPE int;
+DEFINE FIELD short_description ON TABLE license TYPE string;
+DEFINE INDEX licenseIndex ON TABLE license COLUMNS name UNIQUE;
+
 /* Migrations */
 -- Migration for cart table - price column(from float to int)
-UPDATE cart SET total_amount = <int>$value;
+UPDATE cart SET total_amount = <int>$this.total_amount;
 -- Migration for order table - add new screenshot column
 UPDATE cart SET session_id = "" WHERE session_id IS NONE;
+
+-- Migration for cart_product table - add new license column
+CREATE license SET name = "Standard", price_factor = 1, short_description = "Standard (1 project sold to 1 client)";
+CREATE license SET name = "Plus", price_factor = 2, short_description = "Standard Plus (1 project sold to 1 client, DevOps, unlimited personal)";
+CREATE license SET name = "Extended", price_factor = 9, short_description = "Extended (unlimited projects, SaaS)";
+
+UPDATE cart_product SET license = (SELECT VALUE id FROM ONLY license WHERE name = "Standard" LIMIT 1) WHERE license IS NONE;
+UPDATE cart_product SET quantity = 1 WHERE quantity > 1;

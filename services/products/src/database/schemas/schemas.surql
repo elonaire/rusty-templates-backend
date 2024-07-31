@@ -7,6 +7,11 @@ DEFINE INDEX userIndex ON TABLE user_id COLUMNS user_id UNIQUE;
 -- A schema-full product table
 DEFINE TABLE product SCHEMAFULL;
 DEFINE FIELD name ON TABLE product TYPE string;
+DEFINE FIELD slug ON TABLE product TYPE option<string>;
+DEFINE EVENT product_created ON TABLE product WHEN $event = "CREATE" THEN (
+    -- create slug
+    $value.slug = string::slug($after.name)
+);
 DEFINE FIELD price ON TABLE product TYPE int;
 DEFINE FIELD preview_link ON TABLE product TYPE string;
 DEFINE FIELD screenshot ON TABLE product TYPE string;
@@ -22,7 +27,7 @@ DEFINE FIELD ui_framework ON TABLE product TYPE option<string>
     ASSERT $value INSIDE ["Rusty UI", None];
 DEFINE FIELD use_case on TABLE product TYPE string
     -- Allow only these values in the array
-    ASSERT $value INSIDE ["Dashboard", "Ecommerce", "Admin", "Ecommerce Admin", "Finance Admin", "IoT Admin"];
+    ASSERT $value INSIDE ["Dashboard", "Ecommerce", "Admin", "EcommerceAdmin", "FinanceAdmin", "IoTAdmin"];
 
 
 /* Migrations */
@@ -30,11 +35,7 @@ DEFINE FIELD use_case on TABLE product TYPE string
 UPDATE product SET screenshot = "" WHERE screenshot IS NONE;
 
 -- Migration for product table - price column(from float to int)
-UPDATE product SET price = <int>$value;
+UPDATE product SET price = <int>$this.price;
 
--- A schema-full license table
-DEFINE TABLE license SCHEMAFULL;
-DEFINE FIELD name ON TABLE license TYPE string
-    -- Allow only these values in the array
-    ASSERT $value INSIDE ["Standard", "Plus", "Extended"];
-DEFINE FIELD price_factor ON TABLE license TYPE float;
+-- Migration for product table - slug column
+UPDATE product SET slug = string::slug($this.name);

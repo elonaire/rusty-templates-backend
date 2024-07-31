@@ -10,6 +10,7 @@ pub struct Product {
     pub id: Option<Thing>,
     #[graphql(skip)]
     pub owner: Option<Thing>,
+    pub slug: String,
     pub name: String,
     pub price: u64,
     pub preview_link: String,
@@ -75,12 +76,12 @@ pub enum UseCase {
     #[graphql(name = "Admin")]
     Admin,
     #[graphql(name = "EcommerceAdmin")]
-    #[serde(rename = "Ecommerce Admin")]
+    #[serde(rename = "EcommerceAdmin")]
     EcommerceAdmin,
     #[graphql(name = "FinanceAdmin")]
-    #[serde(rename = "Finance Admin")]
+    #[serde(rename = "FinanceAdmin")]
     FinanceAdmin,
     #[graphql(name = "IoTAdmin")]
-    #[serde(rename = "IoT Admin")]
+    #[serde(rename = "IoTAdmin")]
     IoTAdmin,
 }

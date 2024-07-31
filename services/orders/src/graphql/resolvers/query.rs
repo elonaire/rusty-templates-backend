@@ -1,6 +1,6 @@
 use async_graphql::{MergedObject, Object};
 
-use super::cart::query::CartQuery;
+use super::{cart::query::CartQuery, orders::query::OrderQuery};
 
 #[derive(Default)]
 pub struct EmptyQuery;
@@ -13,4 +13,4 @@ impl EmptyQuery {
 }
 
 #[derive(MergedObject, Default)]
-pub struct Query(EmptyQuery, CartQuery);
+pub struct Query(EmptyQuery, CartQuery, OrderQuery);
