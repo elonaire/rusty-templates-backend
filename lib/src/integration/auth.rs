@@ -31,6 +31,8 @@ pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<CheckAuthResponse
 
             let auth_response = perform_query_without_vars::<CheckAuthResponse>(Some(auth_headers), endpoint.as_str(), gql_query).await;
 
+            println!("auth_response: {:?}", auth_response);
+
             match auth_response.get_data() {
                 Some(auth_response) => {
                     Ok(auth_response.to_owned())

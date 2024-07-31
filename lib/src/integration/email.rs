@@ -25,6 +25,8 @@ pub async fn send_email(headers: HeaderMap, email: Email) -> Result<String, Erro
 
             let send_email_response = perform_mutation_or_query_with_vars::<SendEmailResponse, SendEmailVar>(None, &endpoint, gql_query, variables).await;
 
+            println!("send_email_response: {:?}", send_email_response);
+
             match send_email_response.get_data() {
                 Some(send_email_response) => {
                     Ok(send_email_response.send_email.clone())

@@ -20,3 +20,9 @@ impl UploadedFile {
         self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
     }
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct UploadedFileResponse {
+    pub field_name: String,
+    pub file_id: String,
+}

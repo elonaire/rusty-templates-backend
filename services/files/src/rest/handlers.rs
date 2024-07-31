@@ -1,7 +1,7 @@
 use axum::{
     extract::{Extension, Multipart, Path as AxumUrlParams},
     http::{HeaderMap, StatusCode},
-    response::{IntoResponse, Response},
+    response::{IntoResponse, Response}, Json,
 };
 use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists_rest}, utils::models::{ForeignKey, User}};
 use uuid::Uuid;
@@ -9,7 +9,7 @@ use uuid::Uuid;
 use std::{env, fs::{self, File}, io::Write, path::Path, sync::Arc};
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
-use crate::graphql::schemas::general::UploadedFile;
+use crate::graphql::schemas::general::{UploadedFile, UploadedFileResponse};
 
 // use crate::graphql::schemas::general::UploadedFile;
 
@@ -33,6 +33,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
             let system_filename = Uuid::new_v4();
             let mut mime_type = String::new();
             let filepath = format!("{}{}", &upload_dir, system_filename);
+            let mut field_name = String::new();
 
             // Ensure the directory exists
             if let Err(e) = std::fs::create_dir_all(&upload_dir) {
@@ -44,6 +45,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
 
             while let Some(field) = multipart.next_field().await.unwrap_or_else(|_| None) {
                 let mut field = field;
+                println!("field: ");
 
                 // Extract field name and filename
                 filename = field
@@ -56,6 +58,11 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                     .content_type()
                     .map(|mime| mime.to_string())
                     .unwrap_or_else(|| "application/octet-stream".to_string());
+
+                field_name = field
+                    .name()
+                    .map(|name| name.to_string())
+                    .unwrap_or_else(|| "unknown".to_string());
 
                 // Create and open the file for writing
                 let mut file = match File::create(&filepath) {
@@ -126,7 +133,10 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                 .bind(("mime_type", mime_type))
                 .bind(("system_filename", format!("{}", system_filename)))
                 .await {
-                Ok(_result) => (StatusCode::CREATED, format!("Files successfully uploaded, size: {}MB", total_size / 1024 / 1024)).into_response(),
+                Ok(_result) => (StatusCode::CREATED, Json(UploadedFileResponse {
+                    field_name,
+                    file_id: system_filename.to_string()
+                })).into_response(),
                 Err(e) => {
                     let _ = std::fs::remove_file(&filepath);
 
