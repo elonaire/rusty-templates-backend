@@ -30,6 +30,8 @@ pub async fn update_order(headers: HeaderMap, order_id: String, status: OrderSta
 
             let update_order_response = perform_mutation_or_query_with_vars::<UpdateOrderResponse, UpdateOrderVar>(Some(auth_headers), &endpoint, gql_query, variables).await;
 
+            println!("update_order_response: {:?}", update_order_response);
+
             match update_order_response.get_data() {
                 Some(update_order_response) => {
                     Ok(update_order_response.update_order.clone())
