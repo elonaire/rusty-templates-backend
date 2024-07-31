@@ -69,4 +69,25 @@ impl ProductQuery {
 
         Ok(products)
     }
+
+    async fn get_product_by_slug(&self, ctx: &Context<'_>, slug: String) -> Result<Product> {
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+
+        let mut query_response = db
+            .query(
+                "
+                SELECT * FROM ONLY product WHERE slug = $slug LIMIT 1
+                "
+            )
+            .bind(("slug", slug))
+            .await
+            .map_err(|e| Error::new(e.to_string()))?;
+
+        let product: Option<Product> = query_response.take(0)?;
+
+        match product {
+            Some(product) => Ok(product),
+            None => Err(ExtendedError::new("Product not found!", Some(404.to_string())).build())
+        }
+    }
 }
