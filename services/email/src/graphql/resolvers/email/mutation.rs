@@ -2,7 +2,7 @@ use std::{env, time::SystemTime};
 
 use async_graphql::{Context, Error, Object, Result};
 use hyper::Method;
-use lettre::{message::{Attachment, Body, MultiPart, SinglePart}, transport::smtp::{authentication::Credentials, client::{Tls, TlsParametersBuilder}}, Message, SmtpTransport, Transport};
+use lettre::{message::{Attachment, Body, MultiPart, SinglePart}, transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use lib::utils::{custom_error::ExtendedError, models::Email};
 use reqwest::Client as ReqWestClient;
 
@@ -139,20 +139,10 @@ impl EmailMutation {
 
         let creds = Credentials::new(smtp_user.to_owned(), smtp_password.to_owned());
 
-        // TlsParameters setup
-        let tls_parameters = TlsParametersBuilder::new(smtp_server.clone())
-            // .rustls(TlsParameters {
-            //     connector: tls_connector,
-            //     domain: "your.smtp.server".to_string(),
-            // })
-            .build()
-            .unwrap();
-
-        // Open a remote connection to gmail
+        // Open a remote connection to smtp server
         let mailer = SmtpTransport::starttls_relay(&smtp_server)
             .unwrap()
             .credentials(creds)
-            .tls(Tls::Opportunistic(tls_parameters))
             .build();
 
         // Send the email
