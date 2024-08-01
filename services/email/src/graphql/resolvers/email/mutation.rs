@@ -1,8 +1,10 @@
 use std::{env, time::SystemTime};
 
-use async_graphql::{Context, Object, Result};
+use async_graphql::{Context, Error, Object, Result};
+use hyper::Method;
 use lettre::{message::{Attachment, Body, MultiPart, SinglePart}, transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use lib::utils::{custom_error::ExtendedError, models::Email};
+use reqwest::{header::HeaderMap as ReqWestHeaderMap, Client as ReqWestClient};
 
 #[derive(Default)]
 pub struct EmailMutation;
@@ -31,8 +33,23 @@ impl EmailMutation {
         let email_content = email.body;
 
         let logo_url = format!("{}/view/{}", files_service, primary_logo);
+        let client = ReqWestClient::builder().danger_accept_invalid_certs(true).build().unwrap();
         // let logo_image = fs::read("https://imagedelivery.net/fa3SWf5GIAHiTnHQyqU8IQ/5d0feb5f-2b15-4b86-9cf3-1f99372f4600/public")?;
-        let logo_image = reqwest::get(logo_url).await?.bytes().await?;
+        let logo_image = client
+            .request(
+                Method::GET,
+                logo_url.as_str(),
+            )
+            .send()
+            .await.map_err(|e| {
+                println!("Error sending: {:?}", e);
+                Error::new(e.to_string())
+            })?
+            .bytes()
+            .await.map_err(|e| {
+                println!("Error deserializing: {:?}", e);
+                Error::new(e.to_string())
+            })?;
 
         let email_body = format!(r#"
             <!DOCTYPE html>
