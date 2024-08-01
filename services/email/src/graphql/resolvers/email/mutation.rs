@@ -1,12 +1,10 @@
-use std::{env, sync::Arc, time::SystemTime};
+use std::{env, time::SystemTime};
 
 use async_graphql::{Context, Error, Object, Result};
 use hyper::Method;
-use lettre::{message::{Attachment, Body, MultiPart, SinglePart}, transport::smtp::{authentication::Credentials, client::{Tls, TlsParameters, TlsParametersBuilder, TlsVersion}}, Message, SmtpTransport, Transport};
+use lettre::{message::{Attachment, Body, MultiPart, SinglePart}, transport::smtp::{authentication::Credentials, client::{Tls, TlsParametersBuilder}}, Message, SmtpTransport, Transport};
 use lib::utils::{custom_error::ExtendedError, models::Email};
-use reqwest::{header::HeaderMap as ReqWestHeaderMap, Client as ReqWestClient};
-use tokio_rustls::rustls::{ClientConfig, RootCertStore};
-use tokio_rustls::TlsConnector;
+use reqwest::Client as ReqWestClient;
 
 #[derive(Default)]
 pub struct EmailMutation;
@@ -141,27 +139,20 @@ impl EmailMutation {
 
         let creds = Credentials::new(smtp_user.to_owned(), smtp_password.to_owned());
 
-        // let mut root_cert_store = RootCertStore::empty();
- // Create a TlsConnector with the certificates
-        // let client_config = ClientConfig::builder()
-        //     .with_root_certificates(root_cert_store)
-        //     .with_no_client_auth();
-        // let tls_connector = TlsConnector::from(Arc::new(client_config));
- // TlsParameters setup
-        let tls_parameters = TlsParametersBuilder::new("your.smtp.server".to_string())
+        // TlsParameters setup
+        let tls_parameters = TlsParametersBuilder::new(smtp_server.clone())
             // .rustls(TlsParameters {
             //     connector: tls_connector,
             //     domain: "your.smtp.server".to_string(),
             // })
-            .dangerous_accept_invalid_certs(true)
             .build()
             .unwrap();
 
         // Open a remote connection to gmail
-        let mailer = SmtpTransport::relay(&smtp_server)
+        let mailer = SmtpTransport::starttls_relay(&smtp_server)
             .unwrap()
             .credentials(creds)
-            .tls(Tls::Required(tls_parameters))
+            .tls(Tls::Opportunistic(tls_parameters))
             .build();
 
         // Send the email
