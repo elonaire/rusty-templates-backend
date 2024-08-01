@@ -16,6 +16,10 @@ impl EmailMutation {
                         .expect("Missing the SMTP_PASSWORD environment variable.");
         let smtp_server = env::var("SMTP_SERVER")
                         .expect("Missing the SMTP_SERVER environment variable.");
+        let files_service = env::var("FILES_SERVICE")
+                        .expect("Missing the FILES_SERVICE environment variable.");
+        let primary_logo = env::var("PRIMARY_LOGO")
+                        .expect("Missing the PRIMARY_LOGO environment variable.");
 
         let current_year = {
             let now = SystemTime::now();
@@ -26,10 +30,9 @@ impl EmailMutation {
         let email_title = email.title;
         let email_content = email.body;
 
+        let logo_url = format!("{}/view/{}", files_service, primary_logo);
         // let logo_image = fs::read("https://imagedelivery.net/fa3SWf5GIAHiTnHQyqU8IQ/5d0feb5f-2b15-4b86-9cf3-1f99372f4600/public")?;
-        let logo_image = reqwest::get("https://imagedelivery.net/fa3SWf5GIAHiTnHQyqU8IQ/01f762dc-20a6-4842-30fb-2b2401c66200/public").await?.bytes().await?;
-
-        println!("logo_image: {:?}", logo_image);
+        let logo_image = reqwest::get(logo_url).await?.bytes().await?;
 
         let email_body = format!(r#"
             <!DOCTYPE html>
