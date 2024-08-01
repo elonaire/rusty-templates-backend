@@ -94,6 +94,8 @@ services:
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
       - INTERNAL_USER=${INTERNAL_USER}
       - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-products:
     image: elonaire/rt-products:latest
@@ -135,6 +137,8 @@ services:
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
       - INTERNAL_USER=${INTERNAL_USER}
       - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-acl:
     image: elonaire/acl-service:latest
@@ -175,6 +179,8 @@ services:
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
       - INTERNAL_USER=${INTERNAL_USER}
       - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-orders:
     image: elonaire/rt-orders:latest
@@ -216,6 +222,8 @@ services:
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
       - INTERNAL_USER=${INTERNAL_USER}
       - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-payments:
     image: elonaire/rt-payments:latest
@@ -257,6 +265,8 @@ services:
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
       - INTERNAL_USER=${INTERNAL_USER}
       - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-shared:
     image: elonaire/rt-shared:latest
@@ -298,6 +308,8 @@ services:
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
       - INTERNAL_USER=${INTERNAL_USER}
       - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-email:
     image: elonaire/rt-email:latest
@@ -326,6 +338,8 @@ services:
       - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
       - INTERNAL_USER=${INTERNAL_USER}
       - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-acl-db:
     image: surrealdb/surrealdb:v1.5.4
