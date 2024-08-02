@@ -4,7 +4,7 @@ use axum::{
     response::IntoResponse,
 };
 use hyper::header::COOKIE;
-use lib::{integration::{auth::internal_sign_in, email::send_email, order::update_order}, utils::models::{Email, EmailUser, OrderStatus}};
+use lib::{integration::{auth::internal_sign_in, email::send_email, file::purchase_product_artifact, order::{get_all_artifacts_for_order, update_order}}, utils::models::{Email, EmailUser, OrderStatus}};
 use serde_json::Value;
 use std::{sync::Arc, env};
 use surrealdb::{engine::remote::ws::Client, Surreal};
@@ -54,6 +54,15 @@ pub async fn handle_paystack_webhook(
                                 //     StatusCode::BAD_REQUEST,
                                 //     format!("Transaction successful but could not update order status!"),
                                 // ).into_response();
+                            }
+
+                            // give ownership rights to artifacts
+                            if let Ok(artifacts) = get_all_artifacts_for_order(header_map.clone(), reference.to_string()).await {
+                                for artifact in artifacts.artifacts.iter() {
+                                    if let Err(e) = purchase_product_artifact(&header_map.clone(), artifact.clone(), artifacts.buyer_id.clone()).await {
+                                        eprintln!("Failed to update artifacts purchases: {:?}, artifact: {}", e, artifact);
+                                    };
+                                }
                             }
 
                             // Construct and send confirmation email
