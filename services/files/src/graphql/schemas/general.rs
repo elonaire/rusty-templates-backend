@@ -11,6 +11,7 @@ pub struct UploadedFile {
     pub size: u64,
     pub mime_type: String,
     pub system_filename: String,
+    pub is_free: bool,
     pub created_at: Option<String>,
 }
 

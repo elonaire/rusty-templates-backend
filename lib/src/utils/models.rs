@@ -25,6 +25,7 @@ pub struct Product {
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct AuthStatus {
+    #[serde(rename = "isAuth")]
     pub is_auth: bool,
     pub sub: String,
 }
@@ -199,4 +200,11 @@ pub struct SignInResponse {
 pub struct UserLoginsVar {
     #[serde(rename = "rawUserDetails")]
     pub raw_user_details: UserLogins
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct License {
+    #[graphql(skip)]
+    pub id: Option<Thing>,
+    pub license_id: String,
 }

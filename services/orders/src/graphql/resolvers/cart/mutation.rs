@@ -52,7 +52,7 @@ impl CartMutation {
                     let user_fk_body = ForeignKey {
                         table: "user_id".into(),
                         column: "user_id".into(),
-                        foreign_key: auth_status.check_auth.sub
+                        foreign_key: auth_status.sub
                     };
 
                     let user_fk = add_foreign_key_if_not_exists::<User>(ctx, user_fk_body).await;

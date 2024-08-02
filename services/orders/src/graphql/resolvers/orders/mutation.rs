@@ -20,7 +20,7 @@ impl OrderMutation {
             let user_fk = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.check_auth.sub.clone()
+                foreign_key: auth_status.sub.clone()
             };
 
             let session_id = set_session_cookie(&mut headers.clone(), ctx);
@@ -102,7 +102,7 @@ impl OrderMutation {
             let user_fk = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.check_auth.sub.clone()
+                foreign_key: auth_status.sub.clone()
             };
 
             let buyer_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;

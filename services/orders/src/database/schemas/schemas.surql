@@ -37,6 +37,7 @@ DEFINE TABLE cart_product SCHEMAFULL;
 DEFINE FIELD quantity ON TABLE cart_product TYPE int
     ASSERT $value <= 1;
 DEFINE FIELD license ON TABLE cart_product TYPE record<license>;
+DEFINE FIELD artifact ON TABLE cart_product TYPE string;
 DEFINE FIELD in ON TABLE cart_product TYPE record<cart>;
 DEFINE FIELD out ON TABLE cart_product TYPE record<product_id>;
 DEFINE INDEX productIndex ON TABLE cart_product COLUMNS in, out UNIQUE;
@@ -63,3 +64,6 @@ CREATE license SET name = "Extended", price_factor = 9, short_description = "Ext
 
 UPDATE cart_product SET license = (SELECT VALUE id FROM ONLY license WHERE name = "Standard" LIMIT 1) WHERE license IS NONE;
 UPDATE cart_product SET quantity = 1 WHERE quantity > 1;
+
+-- Migration for product table - add new artifact column
+UPDATE cart_product SET artifact = "" WHERE artifact IS NONE;

@@ -1,10 +1,10 @@
 use std::{collections::HashMap, env, io::Error};
 
 use hyper::HeaderMap;
-use crate::utils::{auth::CheckAuthResponse, graphql_api::{perform_mutation_or_query_with_vars, perform_query_without_vars}, models::{SignInResponse, UserLogins, UserLoginsVar}};
+use crate::utils::{auth::CheckAuthResponse, graphql_api::{perform_mutation_or_query_with_vars, perform_query_without_vars}, models::{AuthStatus, SignInResponse, UserLogins, UserLoginsVar}};
 
 /// Integration method for Authentication Service
-pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<CheckAuthResponse, Error> {
+pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<AuthStatus, Error> {
     // check auth status from ACL service(graphql query)
     let gql_query = r#"
         query Query {
@@ -35,7 +35,7 @@ pub async fn check_auth_from_acl(headers: HeaderMap) -> Result<CheckAuthResponse
 
             match auth_response.get_data() {
                 Some(auth_response) => {
-                    Ok(auth_response.to_owned())
+                    Ok(auth_response.check_auth.to_owned())
                 }
                 None => {
                     Err(Error::new(std::io::ErrorKind::Other, "ACL server not responding! check_auth_from_acl"))

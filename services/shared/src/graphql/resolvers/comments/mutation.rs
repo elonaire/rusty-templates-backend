@@ -20,7 +20,7 @@ impl CommentMutation {
             let user_fk = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.check_auth.sub
+                foreign_key: auth_status.sub
             };
 
             let product_fk = ForeignKey {
