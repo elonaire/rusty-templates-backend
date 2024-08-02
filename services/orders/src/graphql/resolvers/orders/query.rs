@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use hyper::HeaderMap;
-use lib::{integration::auth::check_auth_from_acl, utils::{custom_error::ExtendedError, models::ArtifactsPurchaseDetails}};
+use lib::{integration::auth::check_auth_from_acl, utils::{custom_error::ExtendedError, models::{ArtifactsPurchaseDetails, OrderStatus}}};
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
 use crate::graphql::{resolvers::cart::mutation::set_session_cookie, schemas::general::{Cart, CartProduct, License}};
@@ -92,6 +92,37 @@ impl OrderQuery {
             };
 
             Ok(purchase_details)
+        } else {
+            Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
+        }
+    }
+
+    pub async fn get_customer_orders_by_status(&self, ctx: &Context<'_>, status: OrderStatus) -> Result<Vec<CartProduct>> {
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+
+        if let Some(headers) = ctx.data_opt::<HeaderMap>() {
+            let auth_status = check_auth_from_acl(headers.clone()).await?;
+
+            let mut customer_past_orders_query = db
+                .query(
+                    "
+                    BEGIN TRANSACTION;
+                    LET $internal_user = (SELECT VALUE id FROM ONLY user_id WHERE user_id=$user_id LIMIT 1);
+
+                    LET $cart_products = (SELECT VALUE ->cart->cart_product FROM ONLY order WHERE status='Confirmed' LIMIT 1);
+                    LET $combined = (SELECT *, (->product_id.product_id)[0] AS ext_product_id FROM $cart_products);
+                    RETURN $combined;
+                    COMMIT TRANSACTION;
+                    "
+                )
+                .bind(("user_id", auth_status.sub))
+                .bind(("status", status))
+                .await
+                .map_err(|e| Error::new(e.to_string()))?;
+
+            let previous_orders: Vec<CartProduct> = customer_past_orders_query.take(0)?;
+
+            Ok(previous_orders)
         } else {
             Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
         }

@@ -66,7 +66,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                     .unwrap_or_else(|| "unknown".to_string());
 
                 match field_name.as_str() {
-                    "paid_template_artifact" => {
+                    "premium_file" => {
                         is_free = false;
                     },
                     _ => {
@@ -273,10 +273,10 @@ pub async fn download_file(headers: HeaderMap, Extension(db): Extension<Arc<Surr
 
                 let content_type = file_details.mime_type;
 
-                let file_name_with_extension = file_name.to_string();
+                // let file_name_with_extension = file_name.to_string();
 
                 let response = Response::builder()
-                    .header("Content-Disposition", format!("attachment; filename=\"{}\"", file_name_with_extension))
+                    .header("Content-Disposition", format!("attachment; filename=\"{}\"", &file_details.name))
                     .header("Content-Type", content_type.to_string())
                     .body(bytes.into())
                     .unwrap();
