@@ -245,6 +245,7 @@ pub struct ArtifactsPurchaseDetails {
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct BuyProductArtifactVar {
+    #[serde(rename = "fileName")]
     pub file_name: String,
     #[serde(rename = "extUserId")]
     pub ext_user_id: String,

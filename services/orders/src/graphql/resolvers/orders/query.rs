@@ -73,7 +73,11 @@ impl OrderQuery {
             let mut buyer_id_query = db
                 .query(
                     "
-                    SELECT VALUE (<-user_id.user_id)[0] FROM ONLY $id LIMIT 1
+                    BEGIN TRANSACTION;
+                    LET $order = type::thing($id);
+                    LET $buyer = SELECT VALUE (<-user_id.user_id)[0] FROM ONLY $order LIMIT 1;
+                    RETURN $buyer;
+                    COMMIT TRANSACTION;
                     "
                 )
                 .bind(("id", format!("order:{}", order_id)))

@@ -88,23 +88,27 @@ impl FileMutation {
         }
     }
 
-    pub async fn buy_product_artifact(&self, ctx: &Context<'_>, file_name: String) -> Result<UploadedFile> {
+    pub async fn buy_product_artifact(&self, ctx: &Context<'_>, file_name: String) -> Result<String> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let auth_status = check_auth_from_acl(headers.clone()).await?;
-            buy_product_artifact_util(&ctx, &db, auth_status.sub.clone(), file_name).await
+            let bought_artifact = buy_product_artifact_util(&ctx, &db, auth_status.sub.clone(), file_name).await?;
+
+            Ok(bought_artifact.system_filename)
         } else {
             Err(ExtendedError::new("Invalid Request!", Some(400.to_string())).build())
         }
     }
 
-    pub async fn buy_product_artifact_webhook(&self, ctx: &Context<'_>, file_name: String, ext_user_id: String) -> Result<UploadedFile> {
+    pub async fn buy_product_artifact_webhook(&self, ctx: &Context<'_>, file_name: String, ext_user_id: String) -> Result<String> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let _auth_status = check_auth_from_acl(headers.clone()).await?;
-            buy_product_artifact_util(&ctx, &db, ext_user_id.clone(), file_name).await
+            let bought_artifact = buy_product_artifact_util(&ctx, &db, ext_user_id.clone(), file_name).await?;
+
+            Ok(bought_artifact.system_filename)
         } else {
             Err(ExtendedError::new("Invalid Request!", Some(400.to_string())).build())
         }

@@ -35,7 +35,7 @@ pub async fn handle_paystack_webhook(
     let result = mac.finalize();
     let hash = hex::encode(result.into_bytes());
 
-    if hash == signature {
+    if hash != signature {
         // HMAC validation passed
         if let Some(event) = body.get("event").and_then(|e| e.as_str()) {
             if event == "charge.success" {

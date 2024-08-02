@@ -51,15 +51,7 @@ pub async fn purchase_product_artifact(headers: &HeaderMap, file_name: String, e
     // check auth status from ACL service(graphql query)
     let gql_query = r#"
         mutation FileMutation($fileName: String!, $extUserId: String!) {
-            buyProductArtifactWebhook(fileName: $fileName, extUserId: $extUserId) {
-                name
-                size
-                mimeType
-                systemFilename
-                isFree
-                createdAt
-                id
-            }
+            buyProductArtifactWebhook(fileName: $fileName, extUserId: $extUserId)
         }
     "#;
 

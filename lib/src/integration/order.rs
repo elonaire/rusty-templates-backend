@@ -51,7 +51,10 @@ pub async fn get_all_artifacts_for_order(headers: HeaderMap, order_id: String) -
     // check auth status from ACL service(graphql query)
     let gql_query = r#"
         query OrderQuery($orderId: String!) {
-            getAllOrderArtifacts(orderId: $orderId)
+            getAllOrderArtifacts(orderId: $orderId) {
+                buyerId
+                artifacts
+            }
         }
     "#;
 
