@@ -206,5 +206,20 @@ pub struct UserLoginsVar {
 pub struct License {
     #[graphql(skip)]
     pub id: Option<Thing>,
+    // #[serde(rename = "licenseId")]
     pub license_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetProductArtifactVar {
+    #[serde(rename = "externalProductId")]
+    pub external_product_id: String,
+    #[serde(rename = "externalLicenseId")]
+    pub external_license_id: String
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetProductArtifactResponse {
+    #[serde(rename = "getProductArtifact")]
+    pub get_product_artifact: String
 }

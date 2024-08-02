@@ -13,7 +13,7 @@ pub struct FileQuery;
 
 #[Object]
 impl FileQuery {
-    pub async fn get_product_artifact(&self, ctx: &Context<'_>, external_product_id: String, external_license_id: String) -> Result<UploadedFile> {
+    pub async fn get_product_artifact(&self, ctx: &Context<'_>, external_product_id: String, external_license_id: String) -> Result<String> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         let mut product_artifact_query = db
@@ -37,7 +37,7 @@ impl FileQuery {
         let response: Option<UploadedFile> = product_artifact_query.take(0)?;
 
         match response {
-            Some(file) => Ok(file),
+            Some(file) => Ok(file.system_filename),
             None => Err(ExtendedError::new("Invalid parameters!", Some(400.to_string())).build())
         }
     }

@@ -3,7 +3,7 @@ use std::{collections::HashMap, env, io::Error};
 use hyper::HeaderMap;
 use crate::utils::{graphql_api::perform_mutation_or_query_with_vars, models::{OrderStatus, UpdateOrderResponse, UpdateOrderVar}};
 
-/// Integration method for Payments service, used across all the services
+/// Integration method for Orders service, used across all the services
 pub async fn update_order(headers: HeaderMap, order_id: String, status: OrderStatus) -> Result<String, Error> {
     // check auth status from ACL service(graphql query)
     let gql_query = r#"

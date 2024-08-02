@@ -5,7 +5,7 @@ use async_graphql::{Context, Error, Object, Result};
 use axum::{Extension, http::HeaderMap};
 use hyper::header::SET_COOKIE;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use lib::{integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists, product::get_product_price}, utils::{custom_error::ExtendedError, models::{ForeignKey, Product, User}}};
+use lib::{integration::{auth::check_auth_from_acl, file::get_product_artifact, foreign_key::add_foreign_key_if_not_exists, product::get_product_price}, utils::{custom_error::ExtendedError, models::{ForeignKey, Product, User}}};
 use uuid::Uuid;
 
 struct UpdateCartArgs {
@@ -15,6 +15,7 @@ struct UpdateCartArgs {
     pub product_price: u64,
     pub db_ctx: Extension<Arc<Surreal<Client>>>,
     pub license_id: String,
+    pub artifact: String,
 }
 
 struct NewCartArgs {
@@ -24,6 +25,7 @@ struct NewCartArgs {
     pub db_ctx: Extension<Arc<Surreal<Client>>>,
     pub session_id: String,
     pub license_id: String,
+    pub artifact: String,
 }
 
 #[derive(Default)]
@@ -31,7 +33,7 @@ pub struct CartMutation;
 
 #[Object]
 impl CartMutation {
-    pub async fn create_or_update_cart(&self, ctx: &Context<'_>, external_product_id: String, cart_operation: CartOperation, license_id: String) -> Result<Cart> {
+    pub async fn create_or_update_cart(&self, ctx: &Context<'_>, external_product_id: String, cart_operation: CartOperation, external_license_id: String) -> Result<Cart> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
@@ -46,6 +48,10 @@ impl CartMutation {
             let product_fk = add_foreign_key_if_not_exists::<Product>(ctx, product_fk_body).await;
             let internal_product_id = product_fk.unwrap().id.as_ref().map(|t| &t.id).expect("id").to_raw();
             let product_price = get_product_price(external_product_id.clone()).await?;
+
+            let product_artifact = get_product_artifact(&headers, external_product_id.clone(), external_license_id.clone()).await?;
+
+            println!("product_artifact: {:?}", product_artifact);
 
             match check_auth_from_acl(headers.clone()).await {
                 Ok(auth_status) => {
@@ -77,7 +83,8 @@ impl CartMutation {
                                 cart_operation: cart_operation.clone(),
                                 product_price,
                                 db_ctx: db.clone(),
-                                license_id: license_id.clone(),
+                                license_id: external_license_id.clone(),
+                                artifact: product_artifact.clone()
                             };
 
                             let updated_cart = update_existing_cart(update_args).await;
@@ -94,7 +101,8 @@ impl CartMutation {
                                 internal_user_id: Some(internal_user_id.clone()),
                                 db_ctx: db.clone(),
                                 session_id: session_id.clone(),
-                                license_id: license_id.clone(),
+                                license_id: external_license_id.clone(),
+                                artifact: product_artifact.clone()
                             };
 
                             let new_cart = create_new_cart(new_cart_args).await;
@@ -120,7 +128,8 @@ impl CartMutation {
                                 cart_operation: cart_operation.clone(),
                                 product_price,
                                 db_ctx: db.clone(),
-                                license_id: license_id.clone(),
+                                license_id: external_license_id.clone(),
+                                artifact: product_artifact.clone()
                             };
 
                             let updated_cart = update_existing_cart(update_args).await;
@@ -134,7 +143,8 @@ impl CartMutation {
                                 internal_user_id: None,
                                 db_ctx: db.clone(),
                                 session_id,
-                                license_id: license_id.clone(),
+                                license_id: external_license_id.clone(),
+                                artifact: product_artifact.clone()
                             };
 
                             let new_cart = create_new_cart(new_cart_args).await;
@@ -186,7 +196,8 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
              			in: $cart,
              			license: $license.id,
              			out: $product,
-             			quantity: 1
+             			quantity: 1,
+                        artifact: $artifact
               		} RETURN AFTER);
 
               		RETURN $updates[0].quantity;
@@ -203,6 +214,7 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
             .bind(("product_id", format!("product_id:{}", args.internal_product_id)))
             .bind(("cart_id", format!("cart:{}", cart_id_raw)))
             .bind(("license_id", format!("license:{}", args.license_id)))
+            .bind(("artifact", args.artifact))
             .await
             .map_err(|e| Error::new(e.to_string()))?;
 
@@ -266,7 +278,8 @@ async fn create_new_cart(args: NewCartArgs) -> Result<Cart> {
             quantity: 1,
             in: $cart_id,
             out: $product,
-            license: $license.id
+            license: $license.id,
+            artifact: $artifact
         };
         RETURN $new_cart;
         COMMIT TRANSACTION;
@@ -279,6 +292,7 @@ async fn create_new_cart(args: NewCartArgs) -> Result<Cart> {
     .bind(("user", match args.internal_user_id { Some(id) => format!("user_id:{}", id), None => "".to_string() } ))
     .bind(("session_id", args.session_id))
     .bind(("license_id", format!("license:{}", args.license_id)))
+    .bind(("artifact", args.artifact))
     .await
     .map_err(|e| Error::new(e.to_string()))?;
 
