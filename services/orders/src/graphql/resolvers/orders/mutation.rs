@@ -137,6 +137,25 @@ impl OrderMutation {
 
                     let response: Option<Order> = update_order_transaction.take(0)?;
 
+                    match status {
+                        OrderStatus::Confirmed => {
+                            let mut update_order_transaction = db
+                            .query(
+                                "
+                                LET $order = type::thing($order_id);
+                                LET $active_cart = (SELECT VALUE ->(cart WHERE archived=false) FROM ONLY $order LIMIT 1)[0];
+                                LET $updated = (UPDATE ONLY $active_cart SET archived=true);
+
+                                RETURN $updated;
+                                "
+                            )
+                            .bind(("order_id", format!("order:{}", order.id.as_ref().map(|t| &t.id).expect("id").to_raw())))
+                            .await
+                            .map_err(|e| Error::new(e.to_string()))?;
+                        },
+                        _ => {}
+                    }
+
                     match response {
                         Some(updated_order) => Ok(format!("{:?}", updated_order.status)),
                         None => Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())

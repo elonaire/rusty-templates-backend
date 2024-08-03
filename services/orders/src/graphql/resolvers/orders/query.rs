@@ -36,7 +36,13 @@ impl OrderQuery {
         let mut cart_products_query = db
         .query(
             "
-            SELECT *, (SELECT VALUE product_id FROM ONLY (SELECT VALUE out FROM cart_product WHERE in = type::thing($cart_id) AND id = $parent.id) LIMIT 1) AS ext_product_id FROM cart_product;
+            BEGIN TRANSACTION;
+            LET $cart = type::thing($cart_id);
+            LET $cart_products = (SELECT VALUE ->cart_product FROM ONLY $cart);
+            LET $aggregated = (SELECT *, (->product_id.product_id)[0] AS ext_product_id FROM $cart_products);
+
+            RETURN $aggregated;
+            COMMIT TRANSACTION;
             "
         )
         .bind(("cart_id", format!("cart:{}", cart_id)))
@@ -109,7 +115,7 @@ impl OrderQuery {
                     BEGIN TRANSACTION;
                     LET $internal_user = (SELECT VALUE id FROM ONLY user_id WHERE user_id=$user_id LIMIT 1);
 
-                    LET $cart_products = (SELECT VALUE ->cart->cart_product FROM ONLY order WHERE status='Confirmed' LIMIT 1);
+                    LET $cart_products = (SELECT VALUE (->cart->cart_product)[0] FROM order WHERE status='Confirmed');
                     LET $combined = (SELECT *, (->product_id.product_id)[0] AS ext_product_id FROM $cart_products);
                     RETURN $combined;
                     COMMIT TRANSACTION;

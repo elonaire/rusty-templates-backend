@@ -31,7 +31,7 @@ DEFINE FIELD updated_at ON TABLE cart TYPE datetime
     VALUE time::now();
 DEFINE FIELD owner ON TABLE cart TYPE option<record<user_id>>;
 DEFINE FIELD session_id ON TABLE cart TYPE string;
-DEFINE INDEX sessionIdIndex ON TABLE cart COLUMNS session_id UNIQUE;
+-- DEFINE INDEX sessionIdIndex ON TABLE cart COLUMNS session_id,id,archived UNIQUE;
 
 -- A schema-full cart table
 DEFINE TABLE cart_product SCHEMAFULL;

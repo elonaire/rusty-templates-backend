@@ -18,6 +18,7 @@ struct UpdateCartArgs {
     pub artifact: String,
 }
 
+#[derive(Debug)]
 struct NewCartArgs {
     pub internal_product_id: String,
     pub product_price: u64,
@@ -94,7 +95,7 @@ impl CartMutation {
                             updated_cart
                         },
                         None => {
-
+                            println!("SHould Go here!");
                             let new_cart_args = NewCartArgs {
                                 internal_product_id: internal_product_id.clone(),
                                 product_price,
@@ -256,6 +257,7 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
 }
 
 async fn create_new_cart(args: NewCartArgs) -> Result<Cart> {
+    println!("args.internal_user_id: {:?}", args);
     let mut create_cart_transaction = args.db_ctx
     .query(
         "
