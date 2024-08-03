@@ -20,6 +20,7 @@ DEFINE FIELD updated_at ON TABLE order TYPE datetime
     VALUE time::now();
 DEFINE FIELD in ON TABLE order TYPE record<user_id>;
 DEFINE FIELD out ON TABLE order TYPE record<cart>;
+DEFINE INDEX cartOrderIndex ON TABLE order COLUMNS in,out UNIQUE;
 
 -- A schema-full cart table
 DEFINE TABLE cart SCHEMAFULL;
@@ -30,13 +31,14 @@ DEFINE FIELD updated_at ON TABLE cart TYPE datetime
     VALUE time::now();
 DEFINE FIELD owner ON TABLE cart TYPE option<record<user_id>>;
 DEFINE FIELD session_id ON TABLE cart TYPE string;
-DEFINE INDEX sessionIdIndex ON TABLE cart COLUMNS session_id UNIQUE;
+-- DEFINE INDEX sessionIdIndex ON TABLE cart COLUMNS session_id,id,archived UNIQUE;
 
 -- A schema-full cart table
 DEFINE TABLE cart_product SCHEMAFULL;
 DEFINE FIELD quantity ON TABLE cart_product TYPE int
     ASSERT $value <= 1;
 DEFINE FIELD license ON TABLE cart_product TYPE record<license>;
+DEFINE FIELD artifact ON TABLE cart_product TYPE string;
 DEFINE FIELD in ON TABLE cart_product TYPE record<cart>;
 DEFINE FIELD out ON TABLE cart_product TYPE record<product_id>;
 DEFINE INDEX productIndex ON TABLE cart_product COLUMNS in, out UNIQUE;
@@ -59,7 +61,10 @@ UPDATE cart SET session_id = "" WHERE session_id IS NONE;
 -- Migration for cart_product table - add new license column
 CREATE license SET name = "Standard", price_factor = 1, short_description = "Standard (1 project sold to 1 client)";
 CREATE license SET name = "Plus", price_factor = 2, short_description = "Standard Plus (1 project sold to 1 client, DevOps, unlimited personal)";
-CREATE license SET name = "Extended", price_factor = 9, short_description = "Extended (unlimited projects, SaaS)";
+CREATE license SET name = "Extended", price_factor = 9, short_description = "Extended (unlimited projects, DevOps, SaaS)";
 
 UPDATE cart_product SET license = (SELECT VALUE id FROM ONLY license WHERE name = "Standard" LIMIT 1) WHERE license IS NONE;
 UPDATE cart_product SET quantity = 1 WHERE quantity > 1;
+
+-- Migration for product table - add new artifact column
+UPDATE cart_product SET artifact = "" WHERE artifact IS NONE;

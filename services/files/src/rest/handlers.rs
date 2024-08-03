@@ -22,7 +22,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
             let user_fk_body = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.check_auth.sub
+                foreign_key: auth_status.sub
             };
 
             let user_fk = add_foreign_key_if_not_exists_rest::<User>(&db, user_fk_body).await;
@@ -34,6 +34,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
             let mut mime_type = String::new();
             let filepath = format!("{}{}", &upload_dir, system_filename);
             let mut field_name = String::new();
+            let mut is_free = true;
 
             // Ensure the directory exists
             if let Err(e) = std::fs::create_dir_all(&upload_dir) {
@@ -63,6 +64,15 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                     .name()
                     .map(|name| name.to_string())
                     .unwrap_or_else(|| "unknown".to_string());
+
+                match field_name.as_str() {
+                    "premium_file" => {
+                        is_free = false;
+                    },
+                    _ => {
+                        is_free = true;
+                    }
+                }
 
                 // Create and open the file for writing
                 let mut file = match File::create(&filepath) {
@@ -121,7 +131,8 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                        	name: $name,
                         size: $size,
                         mime_type: $mime_type,
-                        system_filename: $system_filename
+                        system_filename: $system_filename,
+                        is_free: $is_free
                     });
                     RETURN $new_file;
                     COMMIT TRANSACTION;
@@ -131,6 +142,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
                 .bind(("name", filename))
                 .bind(("size", total_size))
                 .bind(("mime_type", mime_type))
+                .bind(("is_free", is_free))
                 .bind(("system_filename", format!("{}", system_filename)))
                 .await {
                 Ok(_result) => (StatusCode::CREATED, Json(UploadedFileResponse {
@@ -157,7 +169,7 @@ pub async fn upload(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Cli
     }
 }
 
-pub async fn download_file(Extension(db): Extension<Arc<Surreal<Client>>>, AxumUrlParams(file_name): AxumUrlParams<String>) -> Result<Response, StatusCode> {
+pub async fn download_file(headers: HeaderMap, Extension(db): Extension<Arc<Surreal<Client>>>, AxumUrlParams(file_name): AxumUrlParams<String>) -> Result<Response, StatusCode> {
     let upload_dir = env::var("FILE_UPLOADS_DIR")
     .expect("Missing the FILE_UPLOADS_DIR environment variable.");
     let path = Path::new(&upload_dir).join(&file_name);
@@ -179,12 +191,92 @@ pub async fn download_file(Extension(db): Extension<Arc<Surreal<Client>>>, AxumU
 
         match file_details {
             Some(file_details) => {
+                if !file_details.is_free {
+                    match check_auth_from_acl(headers.clone()).await {
+                        Ok(auth_status) => {
+                            // verify that they actually bought the file
+                            let mut bought_file_query = db
+                                .query(
+                                    "
+                                    BEGIN TRANSACTION;
+                                    LET $internal_user = (SELECT VALUE id FROM ONLY user_id WHERE user_id = $user_id LIMIT 1);
+                                    LET $bought_file = (SELECT * FROM (SELECT VALUE ->bought_file.out[*] FROM ONLY $internal_user LIMIT 1) WHERE system_filename = $file_name)[0];
+
+                                    RETURN $bought_file;
+                                    COMMIT TRANSACTION;
+                                    "
+                                )
+                                    .bind(("user_id", &auth_status.sub))
+                                    .bind(("file_name", &file_name))
+                                    .await
+                                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+                            println!("bought_file_query: {:?}", bought_file_query);
+
+                            let bought_file: Option<UploadedFile> = bought_file_query.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+                            match bought_file {
+                                Some(_) => {
+                                    // Continue to generate the response
+                                },
+                                None => {
+                                    // return Err(StatusCode::FORBIDDEN);
+                                    // return Ok((
+                                    //     StatusCode::FORBIDDEN,
+                                    //     format!("Not Allowed!"),
+                                    // ).into_response())
+                                    // verify that they own the file
+                                    let mut owned_file_query = db
+                                        .query(
+                                            "
+                                            BEGIN TRANSACTION;
+                                            LET $internal_user = (SELECT VALUE id FROM ONLY user_id WHERE user_id=$user_id LIMIT 1);
+
+                                            LET $owned_file = (SELECT * FROM ONLY file WHERE owner=$internal_user AND system_filename=$file_name LIMIT 1);
+
+                                            RETURN $owned_file;
+                                            COMMIT TRANSACTION;
+                                            "
+                                        )
+                                            .bind(("user_id", &auth_status.sub))
+                                            .bind(("file_name", &file_name))
+                                            .await
+                                            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+                                    let file_info: Option<UploadedFile> = owned_file_query.take(0).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+
+                                    match file_info {
+                                        Some(_) => {
+                                            // Continue to generate the response
+                                        },
+                                        None => {
+                                            eprintln!("Not Allowed! Not owned");
+                                            return Ok((
+                                                StatusCode::FORBIDDEN,
+                                                format!("Not Allowed!"),
+                                            ).into_response())
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            eprintln!("Auth failed!: {:?}", e);
+                            return Ok((
+                                StatusCode::FORBIDDEN,
+                                format!("Not Allowed!! {:?}", e),
+                            ).into_response())
+                        }
+                    }
+                }
+
                 let content_type = file_details.mime_type;
 
-                let file_name_with_extension = file_name.to_string();
+                // let file_name_with_extension = file_name.to_string();
 
                 let response = Response::builder()
-                    .header("Content-Disposition", format!("attachment; filename=\"{}\"", file_name_with_extension))
+                    .header("Content-Disposition", format!("attachment; filename=\"{}\"", &file_details.name))
                     .header("Content-Type", content_type.to_string())
                     .body(bytes.into())
                     .unwrap();

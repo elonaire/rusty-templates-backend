@@ -25,6 +25,7 @@ pub struct Product {
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct AuthStatus {
+    #[serde(rename = "isAuth")]
     pub is_auth: bool,
     pub sub: String,
 }
@@ -140,9 +141,21 @@ pub struct UpdateOrderVar {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct GetOrderArtifactsVar {
+    #[serde(rename = "orderId")]
+    pub order_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateOrderResponse {
     #[serde(rename = "updateOrder")]
     pub update_order: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct GetOrderArtifactsResponse {
+    #[serde(rename = "getAllOrderArtifacts")]
+    pub get_all_order_artifacts: ArtifactsPurchaseDetails,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
@@ -199,4 +212,47 @@ pub struct SignInResponse {
 pub struct UserLoginsVar {
     #[serde(rename = "rawUserDetails")]
     pub raw_user_details: UserLogins
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct License {
+    #[graphql(skip)]
+    pub id: Option<Thing>,
+    // #[serde(rename = "licenseId")]
+    pub license_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetProductArtifactVar {
+    #[serde(rename = "externalProductId")]
+    pub external_product_id: String,
+    #[serde(rename = "externalLicenseId")]
+    pub external_license_id: String
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetProductArtifactResponse {
+    #[serde(rename = "getProductArtifact")]
+    pub get_product_artifact: String
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct ArtifactsPurchaseDetails {
+    #[serde(rename = "buyerId")]
+    pub buyer_id: String,
+    pub artifacts: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct BuyProductArtifactVar {
+    #[serde(rename = "fileName")]
+    pub file_name: String,
+    #[serde(rename = "extUserId")]
+    pub ext_user_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct BuyProductArtifactResponse {
+    #[serde(rename = "buyProductArtifactWebhook")]
+    pub buy_product_artifact_webhook: String
 }

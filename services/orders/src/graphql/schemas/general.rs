@@ -48,6 +48,7 @@ pub struct CartProduct {
     pub license: Option<Thing>,
     pub quantity: u32,
     pub ext_product_id: String,
+    pub artifact: String,
 }
 
 #[ComplexObject]

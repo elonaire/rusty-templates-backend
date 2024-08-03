@@ -20,7 +20,7 @@ impl OrderMutation {
             let user_fk = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.check_auth.sub.clone()
+                foreign_key: auth_status.sub.clone()
             };
 
             let session_id = set_session_cookie(&mut headers.clone(), ctx);
@@ -102,7 +102,7 @@ impl OrderMutation {
             let user_fk = ForeignKey {
                 table: "user_id".into(),
                 column: "user_id".into(),
-                foreign_key: auth_status.check_auth.sub.clone()
+                foreign_key: auth_status.sub.clone()
             };
 
             let buyer_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;
@@ -136,6 +136,25 @@ impl OrderMutation {
                     .map_err(|e| Error::new(e.to_string()))?;
 
                     let response: Option<Order> = update_order_transaction.take(0)?;
+
+                    match status {
+                        OrderStatus::Confirmed => {
+                            let mut update_order_transaction = db
+                            .query(
+                                "
+                                LET $order = type::thing($order_id);
+                                LET $active_cart = (SELECT VALUE ->(cart WHERE archived=false) FROM ONLY $order LIMIT 1)[0];
+                                LET $updated = (UPDATE ONLY $active_cart SET archived=true);
+
+                                RETURN $updated;
+                                "
+                            )
+                            .bind(("order_id", format!("order:{}", order.id.as_ref().map(|t| &t.id).expect("id").to_raw())))
+                            .await
+                            .map_err(|e| Error::new(e.to_string()))?;
+                        },
+                        _ => {}
+                    }
 
                     match response {
                         Some(updated_order) => Ok(format!("{:?}", updated_order.status)),

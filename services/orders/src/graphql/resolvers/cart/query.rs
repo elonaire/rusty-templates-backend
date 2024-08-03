@@ -39,16 +39,16 @@ impl CartQuery {
             let mut external_product_ids_query = db
             .query(
                 "
-                SELECT * FROM cart WHERE session_id = $session_id
+                SELECT * FROM ONLY cart WHERE session_id = $session_id AND archived=false LIMIT 1
                 "
             )
             .bind(("session_id", session_id))
             .await
             .map_err(|e| Error::new(e.to_string()))?;
 
-            let response: Vec<Cart> = external_product_ids_query.take(0)?;
+            let response: Option<Cart> = external_product_ids_query.take(0)?;
 
-            match response.iter().nth(0) {
+            match response {
                 Some(cart) => Ok(cart.clone()),
                 None => Err(ExtendedError::new("Not found!", Some(404.to_string())).build())
             }
