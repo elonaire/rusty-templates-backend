@@ -115,7 +115,7 @@ impl OrderQuery {
                     BEGIN TRANSACTION;
                     LET $internal_user = (SELECT VALUE id FROM ONLY user_id WHERE user_id=$user_id LIMIT 1);
 
-                    LET $cart_products = (SELECT VALUE (->cart->cart_product)[0] FROM order WHERE status='Confirmed');
+                    LET $cart_products = (SELECT VALUE (->cart->cart_product)[0] FROM order WHERE status='Confirmed' AND in=$internal_user);
                     LET $combined = (SELECT *, (->product_id.product_id)[0] AS ext_product_id FROM $cart_products);
                     RETURN $combined;
                     COMMIT TRANSACTION;
