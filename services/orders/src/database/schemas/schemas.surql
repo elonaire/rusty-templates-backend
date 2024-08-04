@@ -59,9 +59,9 @@ UPDATE cart SET total_amount = <int>$this.total_amount;
 UPDATE cart SET session_id = "" WHERE session_id IS NONE;
 
 -- Migration for cart_product table - add new license column
-CREATE license SET name = "Standard", price_factor = 1, short_description = "Standard (1 project sold to 1 client)";
-CREATE license SET name = "Plus", price_factor = 2, short_description = "Standard Plus (1 project sold to 1 client, DevOps, unlimited personal)";
-CREATE license SET name = "Extended", price_factor = 9, short_description = "Extended (unlimited projects, DevOps, SaaS)";
+CREATE license SET name = "Rusty", price_factor = 1, short_description = "Rusty (1 project sold to 1 client)";
+CREATE license SET name = "Rustier", price_factor = 2, short_description = "Rustier Plus (1 project sold to 1 client, DevOps, unlimited personal)";
+CREATE license SET name = "Rustiest", price_factor = 9, short_description = "Rustiest (unlimited projects, DevOps, SaaS)";
 
 UPDATE cart_product SET license = (SELECT VALUE id FROM ONLY license WHERE name = "Standard" LIMIT 1) WHERE license IS NONE;
 UPDATE cart_product SET quantity = 1 WHERE quantity > 1;
