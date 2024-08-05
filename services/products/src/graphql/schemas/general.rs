@@ -15,10 +15,10 @@ pub struct Product {
     pub price: u64,
     pub preview_link: String,
     pub screenshot: String,
-    pub framework: Framework,
-    pub application_layer: ApplicationLayer,
+    pub framework: Option<Framework>,
+    pub application_layer: Option<ApplicationLayer>,
     pub ui_framework: Option<UiFramework>,
-    pub use_case: UseCase,
+    pub use_case: Option<UseCase>,
 }
 
 #[ComplexObject]
@@ -63,7 +63,7 @@ pub enum ApplicationLayer {
 #[derive(Clone, Debug, Serialize, Deserialize, Enum, Copy, Eq, PartialEq)]
 pub enum UiFramework {
     #[graphql(name = "RustyUI")]
-    #[serde(rename = "Rusty UI")]
+    #[serde(rename = "RustyUI")]
     RustyUI,
 }
 
