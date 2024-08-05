@@ -24,7 +24,7 @@ DEFINE FIELD application_layer ON TABLE product TYPE string
   ASSERT $value INSIDE ["Frontend", "Backend"];
 DEFINE FIELD ui_framework ON TABLE product TYPE option<string>
     -- Allow only these values in the array
-    ASSERT $value INSIDE ["Rusty UI", None];
+    ASSERT $value INSIDE ["RustyUI", None];
 DEFINE FIELD use_case on TABLE product TYPE string
     -- Allow only these values in the array
     ASSERT $value INSIDE ["Dashboard", "Ecommerce", "Admin", "EcommerceAdmin", "FinanceAdmin", "IoTAdmin"];
@@ -39,3 +39,6 @@ UPDATE product SET price = <int>$this.price;
 
 -- Migration for product table - slug column
 UPDATE product SET slug = string::slug($this.name);
+
+-- Migration for product table - ui_framework column
+UPDATE product SET ui_framework = "RustyUI" WHERE ui_framework="Rusty UI";

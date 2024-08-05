@@ -47,7 +47,7 @@ DEFINE INDEX productIndex ON TABLE cart_product COLUMNS in, out UNIQUE;
 DEFINE TABLE license SCHEMAFULL;
 DEFINE FIELD name ON TABLE license TYPE string
     -- Allow only these values in the array
-    ASSERT $value INSIDE ["Standard", "Plus", "Extended"];
+    ASSERT $value INSIDE ["Rusty", "Rustier", "Rustiest"];
 DEFINE FIELD price_factor ON TABLE license TYPE int;
 DEFINE FIELD short_description ON TABLE license TYPE string;
 DEFINE INDEX licenseIndex ON TABLE license COLUMNS name UNIQUE;
@@ -60,7 +60,7 @@ UPDATE cart SET session_id = "" WHERE session_id IS NONE;
 
 -- Migration for cart_product table - add new license column
 CREATE license SET name = "Rusty", price_factor = 1, short_description = "Rusty (1 project sold to 1 client)";
-CREATE license SET name = "Rustier", price_factor = 2, short_description = "Rustier Plus (1 project sold to 1 client, DevOps, unlimited personal)";
+CREATE license SET name = "Rustier", price_factor = 2, short_description = "Rustier (1 project sold to 1 client, DevOps, unlimited personal)";
 CREATE license SET name = "Rustiest", price_factor = 9, short_description = "Rustiest (unlimited projects, DevOps, SaaS)";
 
 UPDATE cart_product SET license = (SELECT VALUE id FROM ONLY license WHERE name = "Standard" LIMIT 1) WHERE license IS NONE;
