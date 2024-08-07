@@ -20,7 +20,7 @@ DEFINE FIELD updated_at ON TABLE order TYPE datetime
     VALUE time::now();
 DEFINE FIELD in ON TABLE order TYPE record<user_id>;
 DEFINE FIELD out ON TABLE order TYPE record<cart>;
-DEFINE INDEX cartOrderIndex ON TABLE order COLUMNS in,out UNIQUE;
+-- DEFINE INDEX cartOrderIndex ON TABLE order COLUMNS in,out UNIQUE;
 
 -- A schema-full cart table
 DEFINE TABLE cart SCHEMAFULL;
@@ -68,3 +68,6 @@ UPDATE cart_product SET quantity = 1 WHERE quantity > 1;
 
 -- Migration for product table - add new artifact column
 UPDATE cart_product SET artifact = "" WHERE artifact IS NONE;
+
+-- Migration for order table
+REMOVE INDEX IF EXISTS cartOrderIndex ON TABLE order;
