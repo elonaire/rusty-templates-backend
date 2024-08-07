@@ -12,11 +12,11 @@ use surrealdb::{
 pub async fn create_db_connection() -> Result<Surreal<Client>> {
     dotenv().ok();
     println!("Creating Surreal database connection...");
-    let db_host = std::env::var("DATABASE_HOST_FILES").expect("DB_HOST not set");
-    let db_port = std::env::var("DATABASE_PORT_FILES").expect("DB_PORT not set");
+    let db_host = std::env::var("DATABASE_HOST_SHARED").expect("DB_HOST not set");
+    let db_port = std::env::var("DATABASE_PORT_SHARED").expect("DB_PORT not set");
     let db_user: String = std::env::var("DATABASE_USER").expect("DB_USER not set");
     let db_password: String = std::env::var("DATABASE_PASSWORD").expect("DB_PASSWORD not set");
-    let db_name: String = std::env::var("DATABASE_NAME_FILES").expect("DB_NAME not set");
+    let db_name: String = std::env::var("DATABASE_NAME_SHARED").expect("DB_NAME not set");
     let db_namespace: String = std::env::var("DATABASE_NAMESPACE").expect("DB_NAMESPACE not set");
     // let db_scope: String = std::env::var("DATABASE_SCOPE").expect("DB_SCOPE not set");
 

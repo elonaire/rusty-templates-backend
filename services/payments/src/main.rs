@@ -24,6 +24,7 @@ use rest::handlers::handle_paystack_webhook;
 // use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
 use tower_http::cors::CorsLayer;
+use dotenvy::dotenv;
 
 use graphql::resolvers::mutation::Mutation;
 
@@ -43,9 +44,10 @@ async fn graphql_handler(
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
     let db = Arc::new(database::connection::create_db_connection().await.unwrap());
 
-    let schema = Schema::build(Query, Mutation::default(), EmptySubscription).finish();
+    let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription).finish();
 
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
                     .expect("Missing the ALLOWED_SERVICES environment variable.");

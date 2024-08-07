@@ -10,12 +10,15 @@ pub struct Product {
     pub id: Option<Thing>,
     #[graphql(skip)]
     pub owner: Option<Thing>,
+    pub slug: String,
     pub name: String,
+    pub price: u64,
     pub preview_link: String,
-    pub framework: Framework,
-    pub application_layer: ApplicationLayer,
+    pub screenshot: String,
+    pub framework: Option<Framework>,
+    pub application_layer: Option<ApplicationLayer>,
     pub ui_framework: Option<UiFramework>,
-    pub use_case: UseCase,
+    pub use_case: Option<UseCase>,
 }
 
 #[ComplexObject]
@@ -60,7 +63,7 @@ pub enum ApplicationLayer {
 #[derive(Clone, Debug, Serialize, Deserialize, Enum, Copy, Eq, PartialEq)]
 pub enum UiFramework {
     #[graphql(name = "RustyUI")]
-    #[serde(rename = "Rusty UI")]
+    #[serde(rename = "RustyUI")]
     RustyUI,
 }
 
@@ -73,12 +76,12 @@ pub enum UseCase {
     #[graphql(name = "Admin")]
     Admin,
     #[graphql(name = "EcommerceAdmin")]
-    #[serde(rename = "Ecommerce Admin")]
+    #[serde(rename = "EcommerceAdmin")]
     EcommerceAdmin,
     #[graphql(name = "FinanceAdmin")]
-    #[serde(rename = "Finance Admin")]
+    #[serde(rename = "FinanceAdmin")]
     FinanceAdmin,
     #[graphql(name = "IoTAdmin")]
-    #[serde(rename = "IoT Admin")]
+    #[serde(rename = "IoTAdmin")]
     IoTAdmin,
 }

@@ -44,7 +44,7 @@ async fn graphql_handler(
 async fn main() -> Result<()> {
     let db = Arc::new(database::connection::create_db_connection().await.unwrap());
 
-    let schema = Schema::build(Query, Mutation::default(), EmptySubscription).finish();
+    let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription).finish();
 
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
                     .expect("Missing the ALLOWED_SERVICES environment variable.");

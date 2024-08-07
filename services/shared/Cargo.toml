@@ -14,6 +14,9 @@ surrealdb = "1.5.4"
 chrono = "0.4.38"
 serde = "1.0.204"
 dotenvy = "0.15.7"
+lettre = { version = "0.11.7", features = ["builder", "serde"]}
+lib = { path = "../../lib" }
+reqwest = { version = "0.12.5", features = ["blocking"]}
 
 [lints.rust]
 unsafe_code = "forbid"

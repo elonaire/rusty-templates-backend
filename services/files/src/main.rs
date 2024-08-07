@@ -3,16 +3,11 @@ mod database;
 mod rest;
 
 use std::{sync::Arc, env};
-use crate::rest::handlers::upload;
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
-    extract::{Extension, DefaultBodyLimit},
-    http::{HeaderMap, HeaderValue},
-    routing::post,
-    Router,
-    serve
+    extract::{DefaultBodyLimit, Extension}, http::{HeaderMap, HeaderValue}, routing::{get, post}, serve, Router
 };
 
 use graphql::resolvers::query::Query;
@@ -20,7 +15,9 @@ use hyper::{
     header::{ACCEPT, ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS, ACCESS_CONTROL_ALLOW_METHODS, ACCESS_CONTROL_ALLOW_ORIGIN, ACCESS_CONTROL_EXPOSE_HEADERS, AUTHORIZATION, CONTENT_TYPE, COOKIE, SET_COOKIE},
     Method,
 };
+use dotenvy::dotenv;
 
+use rest::handlers::{download_file, get_image, upload};
 // use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
 use tower_http::cors::CorsLayer;
@@ -43,9 +40,10 @@ async fn graphql_handler(
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
     let db = Arc::new(database::connection::create_db_connection().await.unwrap());
 
-    let schema = Schema::build(Query, Mutation, EmptySubscription).finish();
+    let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription).finish();
 
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
                     .expect("Missing the ALLOWED_SERVICES environment variable.");
@@ -55,6 +53,8 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .route("/", post(graphql_handler))
         .route("/upload", post(upload))
+        .route("/view/:file_name", get(get_image))
+        .route("/download/:file_name", get(download_file))
         .layer(Extension(schema))
         .layer(Extension(db))
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024))

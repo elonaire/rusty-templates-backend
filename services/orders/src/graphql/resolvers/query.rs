@@ -1,10 +1,16 @@
-use async_graphql::{Context, Error, Object, Result};
+use async_graphql::{MergedObject, Object};
 
-pub struct Query;
+use super::{cart::query::CartQuery, orders::query::OrderQuery};
+
+#[derive(Default)]
+pub struct EmptyQuery;
 
 #[Object]
-impl Query {
-    pub async fn square(&self, ctx: &Context<'_>, num: i32) -> Result<i32> {
-        Ok(num*num)
+impl EmptyQuery {
+    pub async fn health(&self) -> String {
+        "Orders Service is Online!".to_string()
     }
 }
+
+#[derive(MergedObject, Default)]
+pub struct Query(EmptyQuery, CartQuery, OrderQuery);

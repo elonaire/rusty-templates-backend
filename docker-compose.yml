@@ -74,6 +74,7 @@ services:
       - app-tier
     volumes:
       - ./services/files/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+      - ./uploads:/usr/src/uploads
     environment:
       - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
       - DATABASE_NAME_FILES=${DATABASE_NAME_FILES}
@@ -84,6 +85,17 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-products:
     image: elonaire/rt-products:latest
@@ -116,6 +128,17 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-acl:
     image: elonaire/acl-service:latest
@@ -147,6 +170,27 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+      - GITHUB_OAUTH_CLIENT_ID=${GITHUB_OAUTH_CLIENT_ID}
+      - GITHUB_OAUTH_CLIENT_SECRET=${GITHUB_OAUTH_CLIENT_SECRET}
+      - GITHUB_OAUTH_AUTHORIZE_URL=${GITHUB_OAUTH_AUTHORIZE_URL}
+      - GITHUB_OAUTH_ACCESS_TOKEN_URL=${GITHUB_OAUTH_ACCESS_TOKEN_URL}
+      - OAUTH_REDIRECT_URI=${OAUTH_REDIRECT_URI}
+      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
+      - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
+      - GOOGLE_OAUTH_AUTHORIZE_URL=${GOOGLE_OAUTH_AUTHORIZE_URL}
+      - GOOGLE_OAUTH_ACCESS_TOKEN_URL=${GOOGLE_OAUTH_ACCESS_TOKEN_URL}
+      - GOOGLE_OAUTH_REVOKE_TOKEN_URL=${GOOGLE_OAUTH_REVOKE_TOKEN_URL}
 
   rt-orders:
     image: elonaire/rt-orders:latest
@@ -164,6 +208,7 @@ services:
       - "3010-3012:3010"
     depends_on:
       - rt-orders-db
+      - rt-acl
     networks:
       - app-tier
     volumes:
@@ -178,6 +223,17 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-payments:
     image: elonaire/rt-payments:latest
@@ -195,6 +251,7 @@ services:
       - "3013-3015:3013"
     depends_on:
       - rt-payments-db
+      - rt-acl
     networks:
       - app-tier
     volumes:
@@ -209,6 +266,90 @@ services:
       - OAUTH_SERVICE=${OAUTH_SERVICE}
       - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
       - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+
+  rt-shared:
+    image: elonaire/rt-shared:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 200M
+    ports:
+      - "3016-3018:3016"
+    depends_on:
+      - rt-shared-db
+      - rt-acl
+    networks:
+      - app-tier
+    volumes:
+      - ./services/shared/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_SHARED=${DATABASE_NAME_SHARED}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_SHARED=${DATABASE_HOST_SHARED}
+      - DATABASE_PORT_SHARED=${DATABASE_PORT_SHARED}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+
+  rt-email:
+    image: elonaire/rt-email:latest
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - 3019:3019
+    container_name: rt-email
+    depends_on:
+      - rt-acl
+    networks:
+      - app-tier
+    environment:
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-acl-db:
     image: surrealdb/surrealdb:v1.5.4
@@ -289,9 +430,26 @@ services:
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
 
+  rt-shared-db:
+    image: surrealdb/surrealdb:v1.5.4
+    restart: unless-stopped
+    ports:
+      - 8005:8005
+    container_name: rt-shared-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8005 file:/db-data/mydatabase.db
+    volumes:
+      - rt-shared-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
 volumes:
   rt-products-db:
   rt-acl-db:
   rt-files-db:
   rt-orders-db:
   rt-payments-db:
+  rt-shared-db:

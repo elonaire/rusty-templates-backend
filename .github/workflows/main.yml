@@ -17,13 +17,21 @@ env:
   PRODUCTS_SERVICE_PATHS: 'services/products/'
   ORDERS_SERVICE_PATHS: 'services/orders/'
   PAYMENTS_SERVICE_PATHS: 'services/payments/'
+  SHARED_SERVICE_PATHS: 'services/shared/'
+  EMAIL_SERVICE_PATHS: 'services/email/'
+  LIB_PATHS: 'lib/'
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  check_files_service_changes:
+  check_service_changes:
     runs-on: ubuntu-latest
     # needs: [build]
     outputs:
       files_service_should_deploy: ${{ steps.confirm_changes.outputs.FILES_SHOULD_DEPLOY }}
+      products_service_should_deploy: ${{ steps.confirm_changes.outputs.PRODUCTS_SERVICE_SHOULD_DEPLOY }}
+      orders_service_should_deploy: ${{ steps.confirm_changes.outputs.ORDERS_SERVICE_SHOULD_DEPLOY }}
+      payments_service_should_deploy: ${{ steps.confirm_changes.outputs.PAYMENTS_SERVICE_SHOULD_DEPLOY }}
+      shared_service_should_deploy: ${{ steps.confirm_changes.outputs.SHARED_SERVICE_SHOULD_DEPLOY }}
+      email_service_should_deploy: ${{ steps.confirm_changes.outputs.EMAIL_SERVICE_SHOULD_DEPLOY }}
 
     permissions:
       id-token: write # required to use OIDC authentication
@@ -51,146 +59,72 @@ jobs:
           echo "If you see here files that you have not modified, please update your branch with changes from main."
 
           # Check if the modified files include this path
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.FILES_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.FILES_PATHS }}" || echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.FILES_PATHS }}"
             echo "FILES_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
             cat "$GITHUB_OUTPUT"
           else
             echo "FILES_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
-            exit 0
+
           fi
 
-  check_products_service_changes:
-    runs-on: ubuntu-latest
-    # needs: [build]
-    outputs:
-      products_service_should_deploy: ${{ steps.confirm_changes.outputs.PRODUCTS_SERVICE_SHOULD_DEPLOY }}
-
-    permissions:
-      id-token: write # required to use OIDC authentication
-      contents: read # required to checkout the code from the repo
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - id: file_changes
-        name: Check for Products Service Changes
-        run: |
-          echo "Base SHA: ${{ github.event.pull_request.base.sha }}"
-          echo "Head SHA: ${{ github.sha }}"
-          files_temp=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-          files=$(echo "$files_temp" | tr "\n" " ")
-          echo "changed_files=$files" >> "$GITHUB_OUTPUT"
-
-      - id: confirm_changes
-        name: Confirm Changes
-        shell: bash
-        run: |
-          echo "Changed files: ${{ steps.file_changes.outputs.changed_files }}"
-          echo "If you see here files that you have not modified, please update your branch with changes from main."
-
-          # Check if the modified files include this path
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PRODUCTS_SERVICE_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PRODUCTS_SERVICE_PATHS }}" || echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.PRODUCTS_SERVICE_PATHS }}"
             echo "PRODUCTS_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
             cat "$GITHUB_OUTPUT"
           else
             echo "PRODUCTS_SERVICE_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
-            exit 0
+
           fi
 
-  check_orders_service_changes:
-    runs-on: ubuntu-latest
-    # needs: [build]
-    outputs:
-      orders_service_should_deploy: ${{ steps.confirm_changes.outputs.ORDERS_SERVICE_SHOULD_DEPLOY }}
-
-    permissions:
-      id-token: write # required to use OIDC authentication
-      contents: read # required to checkout the code from the repo
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - id: file_changes
-        name: Check for Orders Service Changes
-        run: |
-          echo "Base SHA: ${{ github.event.pull_request.base.sha }}"
-          echo "Head SHA: ${{ github.sha }}"
-          files_temp=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-          files=$(echo "$files_temp" | tr "\n" " ")
-          echo "changed_files=$files" >> "$GITHUB_OUTPUT"
-
-      - id: confirm_changes
-        name: Confirm Changes
-        shell: bash
-        run: |
-          echo "Changed files: ${{ steps.file_changes.outputs.changed_files }}"
-          echo "If you see here files that you have not modified, please update your branch with changes from main."
-
-          # Check if the modified files include this path
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.ORDERS_SERVICE_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.ORDERS_SERVICE_PATHS }}" || echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.ORDERS_SERVICE_PATHS }}"
             echo "ORDERS_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
             cat "$GITHUB_OUTPUT"
           else
             echo "ORDERS_SERVICE_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
-            exit 0
+
           fi
 
-  check_payments_service_changes:
-    runs-on: ubuntu-latest
-    # needs: [build]
-    outputs:
-      payments_service_should_deploy: ${{ steps.confirm_changes.outputs.PAYMENTS_SERVICE_SHOULD_DEPLOY }}
-
-    permissions:
-      id-token: write # required to use OIDC authentication
-      contents: read # required to checkout the code from the repo
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - id: file_changes
-        name: Check for Payments Service Changes
-        run: |
-          echo "Base SHA: ${{ github.event.pull_request.base.sha }}"
-          echo "Head SHA: ${{ github.sha }}"
-          files_temp=$(git diff --name-only --diff-filter=ACMRT ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-          files=$(echo "$files_temp" | tr "\n" " ")
-          echo "changed_files=$files" >> "$GITHUB_OUTPUT"
-
-      - id: confirm_changes
-        name: Confirm Changes
-        shell: bash
-        run: |
-          echo "Changed files: ${{ steps.file_changes.outputs.changed_files }}"
-          echo "If you see here files that you have not modified, please update your branch with changes from main."
-
-          # Check if the modified files include this path
-          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PAYMENTS_SERVICE_PATHS }}"; then
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.PAYMENTS_SERVICE_PATHS }}" || echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.LIB_PATHS }}"; then
             # Set the output variable and exit the loop
             echo "triggering_path is ${{ env.PAYMENTS_SERVICE_PATHS }}"
             echo "PAYMENTS_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
             cat "$GITHUB_OUTPUT"
           else
             echo "PAYMENTS_SERVICE_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
-            exit 0
+
           fi
+
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.SHARED_SERVICE_PATHS }}" || echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.LIB_PATHS }}"; then
+            # Set the output variable and exit the loop
+            echo "triggering_path is ${{ env.SHARED_SERVICE_PATHS }}"
+            echo "SHARED_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
+            cat "$GITHUB_OUTPUT"
+          else
+            echo "SHARED_SERVICE_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
+
+          fi
+
+          if echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.EMAIL_SERVICE_PATHS }}" || echo "${{ steps.file_changes.outputs.changed_files }}" | grep -q "${{ env.LIB_PATHS }}"; then
+            # Set the output variable and exit the loop
+            echo "triggering_path is ${{ env.EMAIL_SERVICE_PATHS }}"
+            echo "EMAIL_SERVICE_SHOULD_DEPLOY=true" >> "$GITHUB_OUTPUT"
+            cat "$GITHUB_OUTPUT"
+          else
+            echo "EMAIL_SERVICE_SHOULD_DEPLOY=false" >> "$GITHUB_OUTPUT"
+
+          fi
+
+          exit 0
 
   build_and_deploy_files:
     runs-on: ubuntu-latest
-    needs: [check_files_service_changes]
-    if: ${{ needs.check_files_service_changes.outputs.files_service_should_deploy == 'true' }}
+    needs: [check_service_changes]
+    if: ${{ needs.check_service_changes.outputs.files_service_should_deploy == 'true' }}
 
     permissions:
       id-token: write # required to use OIDC authentication
@@ -214,8 +148,8 @@ jobs:
 
   build_and_deploy_products_service:
     runs-on: ubuntu-latest
-    needs: [check_products_service_changes]
-    if: ${{ needs.check_products_service_changes.outputs.products_service_should_deploy == 'true' }}
+    needs: [check_service_changes]
+    if: ${{ needs.check_service_changes.outputs.products_service_should_deploy == 'true' }}
 
     permissions:
       id-token: write # required to use OIDC authentication
@@ -239,8 +173,8 @@ jobs:
 
   build_and_deploy_orders_service:
     runs-on: ubuntu-latest
-    needs: [check_orders_service_changes]
-    if: ${{ needs.check_orders_service_changes.outputs.orders_service_should_deploy == 'true' }}
+    needs: [check_service_changes]
+    if: ${{ needs.check_service_changes.outputs.orders_service_should_deploy == 'true' }}
 
     permissions:
       id-token: write # required to use OIDC authentication
@@ -265,8 +199,8 @@ jobs:
 
   build_and_deploy_payments_service:
     runs-on: ubuntu-latest
-    needs: [check_payments_service_changes]
-    if: ${{ needs.check_payments_service_changes.outputs.payments_service_should_deploy == 'true' }}
+    needs: [check_service_changes]
+    if: ${{ needs.check_service_changes.outputs.payments_service_should_deploy == 'true' }}
 
     permissions:
       id-token: write # required to use OIDC authentication
@@ -288,15 +222,67 @@ jobs:
         run: |
           docker buildx build --build-arg SERVICE_NAME=payments --build-arg PORT=3013 -t elonaire/rt-payments:latest --push .
 
+  build_and_deploy_shared_service:
+    runs-on: ubuntu-latest
+    needs: [check_service_changes]
+    if: ${{ needs.check_service_changes.outputs.shared_service_should_deploy == 'true' }}
+
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read # required to checkout the code from the repo
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build the Docker image
+        run: |
+          docker buildx build --build-arg SERVICE_NAME=shared --build-arg PORT=3016 -t elonaire/rt-shared:latest --push .
+
+  build_and_deploy_email_service:
+    runs-on: ubuntu-latest
+    needs: [check_service_changes]
+    if: ${{ needs.check_service_changes.outputs.email_service_should_deploy == 'true' }}
+
+    permissions:
+      id-token: write # required to use OIDC authentication
+      contents: read # required to checkout the code from the repo
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      - name: Build the Docker image
+        run: |
+          docker buildx build --build-arg SERVICE_NAME=email --build-arg PORT=3019 -t elonaire/rt-email:latest --push .
+
   deploy_to_server:
     runs-on: ubuntu-latest
-    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service]
+    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service, build_and_deploy_shared_service, build_and_deploy_email_service]
     if: |
       always() &&
       (needs.build_and_deploy_files.result != 'failure' &&
        needs.build_and_deploy_products_service.result != 'failure' &&
        needs.build_and_deploy_orders_service.result != 'failure' &&
-       needs.build_and_deploy_payments_service != 'failure')
+       needs.build_and_deploy_payments_service != 'failure' &&
+       needs.build_and_deploy_shared_service != 'failure' &&
+       needs.build_and_deploy_email_service != 'failure')
 
     steps:
       - name: Checkout code
@@ -338,13 +324,15 @@ jobs:
   automerge:
     runs-on: ubuntu-latest
 
-    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service, deploy_to_server]
+    needs: [build_and_deploy_files, build_and_deploy_products_service, build_and_deploy_orders_service, build_and_deploy_payments_service, build_and_deploy_shared_service, build_and_deploy_email_service, deploy_to_server]
     if: |
       always() &&
       (needs.build_and_deploy_files.result != 'failure' &&
        needs.build_and_deploy_products_service.result != 'failure' &&
        needs.build_and_deploy_orders_service.result != 'failure' &&
-       needs.build_and_deploy_payments_service != 'failure')
+       needs.build_and_deploy_payments_service != 'failure' &&
+       needs.build_and_deploy_shared_service != 'failure' &&
+       needs.build_and_deploy_email_service != 'failure')
 
     steps:
       - id: automerge
