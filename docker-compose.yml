@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 networks:
   app-tier:
@@ -15,7 +15,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "80-82:80"
@@ -41,7 +41,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "8080-8082:8080"
@@ -51,7 +51,6 @@ services:
       - rt-files
     networks:
       - app-tier
-
 
   rt-files:
     image: elonaire/rt-files:latest
@@ -63,7 +62,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "3001-3003:3001"
@@ -96,6 +95,7 @@ services:
       - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
       - FILES_SERVICE=${FILES_SERVICE}
       - PRIMARY_LOGO=${PRIMARY_LOGO}
+      - FILES_SERVICE_PROD=${FILES_SERVICE_PROD}
 
   rt-products:
     image: elonaire/rt-products:latest
@@ -107,7 +107,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "3004-3006:3004"
@@ -150,7 +150,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "3007-3009:3007"
@@ -202,7 +202,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "3010-3012:3010"
@@ -245,7 +245,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "3013-3015:3013"
@@ -288,7 +288,7 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "3016-3018:3016"
