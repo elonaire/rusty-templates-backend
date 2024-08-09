@@ -14,6 +14,7 @@ DEFINE EVENT product_created ON TABLE product WHEN $event = "CREATE" THEN (
 );
 DEFINE FIELD price ON TABLE product TYPE int;
 DEFINE FIELD preview_link ON TABLE product TYPE string;
+DEFINE FIELD details_file ON TABLE product TYPE string;
 DEFINE FIELD screenshot ON TABLE product TYPE string;
 DEFINE FIELD owner ON TABLE product TYPE record<user_id>;
 DEFINE FIELD framework ON TABLE product TYPE string
@@ -39,6 +40,7 @@ UPDATE product SET price = <int>$this.price;
 
 -- Migration for product table - slug column
 UPDATE product SET slug = string::slug($this.name);
+UPDATE product SET details_file = "" WHERE details_file IS NONE;
 
 -- Migration for product table - ui_framework column
 UPDATE product SET ui_framework = "RustyUI" WHERE ui_framework="Rusty UI";

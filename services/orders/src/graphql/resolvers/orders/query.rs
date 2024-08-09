@@ -3,10 +3,16 @@ use std::sync::Arc;
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use hyper::HeaderMap;
-use lib::{integration::auth::check_auth_from_acl, utils::{custom_error::ExtendedError, models::{ArtifactsPurchaseDetails, OrderStatus}}};
+use lib::{
+    integration::auth::check_auth_from_acl,
+    utils::{
+        custom_error::ExtendedError,
+        models::{ArtifactsPurchaseDetails, OrderStatus},
+    },
+};
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
-use crate::graphql::{resolvers::cart::mutation::set_session_cookie, schemas::general::{Cart, CartProduct, License}};
+use crate::graphql::schemas::general::{CartProduct, License};
 
 #[derive(Default)]
 pub struct OrderQuery;
@@ -17,20 +23,24 @@ impl OrderQuery {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         let mut external_product_ids_query = db
-        .query(
-            "
+            .query(
+                "
             SELECT * FROM license ORDER BY price_factor ASC
-            "
-        )
-        .await
-        .map_err(|e| Error::new(e.to_string()))?;
+            ",
+            )
+            .await
+            .map_err(|e| Error::new(e.to_string()))?;
 
         let response: Vec<License> = external_product_ids_query.take(0)?;
 
         Ok(response)
     }
 
-    async fn get_raw_cart_products(&self, ctx: &Context<'_>, cart_id: String) -> Result<Vec<CartProduct>> {
+    async fn get_raw_cart_products(
+        &self,
+        ctx: &Context<'_>,
+        cart_id: String,
+    ) -> Result<Vec<CartProduct>> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         let mut cart_products_query = db
@@ -54,7 +64,11 @@ impl OrderQuery {
         Ok(response)
     }
 
-    pub async fn get_all_order_artifacts(&self, ctx: &Context<'_>, order_id: String) -> Result<ArtifactsPurchaseDetails> {
+    pub async fn get_all_order_artifacts(
+        &self,
+        ctx: &Context<'_>,
+        order_id: String,
+    ) -> Result<ArtifactsPurchaseDetails> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
@@ -84,7 +98,7 @@ impl OrderQuery {
                     LET $buyer = SELECT VALUE (<-user_id.user_id)[0] FROM ONLY $order LIMIT 1;
                     RETURN $buyer;
                     COMMIT TRANSACTION;
-                    "
+                    ",
                 )
                 .bind(("id", format!("order:{}", order_id)))
                 .await
@@ -94,7 +108,7 @@ impl OrderQuery {
 
             let purchase_details = ArtifactsPurchaseDetails {
                 buyer_id: buyer_id.unwrap_or("".to_string()),
-                artifacts
+                artifacts,
             };
 
             Ok(purchase_details)
@@ -103,7 +117,11 @@ impl OrderQuery {
         }
     }
 
-    pub async fn get_customer_orders_by_status(&self, ctx: &Context<'_>, status: OrderStatus) -> Result<Vec<CartProduct>> {
+    pub async fn get_customer_orders_by_status(
+        &self,
+        ctx: &Context<'_>,
+        status: OrderStatus,
+    ) -> Result<Vec<CartProduct>> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
