@@ -201,7 +201,7 @@ impl OrderMutation {
 
                     match status {
                         OrderStatus::Confirmed => {
-                            let mut update_order_transaction = db
+                            let mut _update_order_transaction = db
                             .query(
                                 "
                                 LET $order = type::thing($order_id);
