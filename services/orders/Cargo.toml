@@ -20,6 +20,8 @@ uuid = { version = "1.10.0", features = [
     "fast-rng",
     "macro-diagnostics",
 ] }
+tracing-subscriber = "0.3.18"
+tracing = "0.1.40"
 
 [lints.rust]
 unsafe_code = "forbid"

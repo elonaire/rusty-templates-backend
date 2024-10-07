@@ -360,7 +360,7 @@ services:
     networks:
       - app-tier
     user: root
-    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} file:/db-data/mydatabase.db
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} surrealkv:/db-data/mydatabase.db
     volumes:
       - rt-acl-db:/db-data
     environment:
@@ -375,7 +375,7 @@ services:
     networks:
       - app-tier
     user: root
-    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8001 file:/db-data/mydatabase.db
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8001 surrealkv:/db-data/mydatabase.db
     volumes:
       - rt-products-db:/db-data
     environment:
@@ -391,7 +391,7 @@ services:
     networks:
       - app-tier
     user: root
-    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8002 file:/db-data/mydatabase.db
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8002 surrealkv:/db-data/mydatabase.db
     volumes:
       - rt-files-db:/db-data
     environment:
@@ -407,7 +407,7 @@ services:
     networks:
       - app-tier
     user: root
-    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8003 file:/db-data/mydatabase.db
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8003 surrealkv:/db-data/mydatabase.db
     volumes:
       - rt-orders-db:/db-data
     environment:
@@ -423,7 +423,7 @@ services:
     networks:
       - app-tier
     user: root
-    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8004 file:/db-data/mydatabase.db
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8004 surrealkv:/db-data/mydatabase.db
     volumes:
       - rt-payments-db:/db-data
     environment:
@@ -439,7 +439,7 @@ services:
     networks:
       - app-tier
     user: root
-    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8005 file:/db-data/mydatabase.db
+    command: start --log debug --auth --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8005 surrealkv:/db-data/mydatabase.db
     volumes:
       - rt-shared-db:/db-data
     environment:

@@ -1,3 +1,6 @@
+-- Enable GraphQL
+DEFINE CONFIG GRAPHQL AUTO;
+
 -- A schema-full user_id table
 DEFINE TABLE user_id SCHEMAFULL;
 -- define some fields
@@ -28,7 +31,7 @@ DEFINE FIELD created_at ON TABLE file TYPE datetime
   DEFAULT time::now();
 
 -- Relationship between product and file
-DEFINE TABLE product_license_artifact SCHEMAFULL;
+DEFINE TABLE product_license_artifact SCHEMAFULL TYPE RELATION;
 DEFINE FIELD license ON TABLE product_license_artifact TYPE record<license_id>;
 DEFINE INDEX fileIndex ON TABLE product_license_artifact
 COLUMNS in, out, license UNIQUE;
@@ -36,7 +39,7 @@ DEFINE FIELD in ON TABLE product_license_artifact TYPE record<product_id>;
 DEFINE FIELD out ON TABLE product_license_artifact TYPE record<file>;
 
 -- Relationship between product and file
-DEFINE TABLE bought_file SCHEMAFULL;
+DEFINE TABLE bought_file SCHEMAFULL TYPE RELATION;
 DEFINE INDEX fileIndex ON TABLE bought_file
 COLUMNS in, out UNIQUE;
 DEFINE FIELD in ON TABLE bought_file TYPE record<user_id>;

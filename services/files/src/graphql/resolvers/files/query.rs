@@ -47,8 +47,11 @@ impl FileQuery {
     }
 
     pub async fn serve_md_files(&self, _ctx: &Context<'_>, file_name: String) -> Result<String> {
-        let files_service = env::var("FILES_SERVICE_PROD")
-            .expect("Missing the FILES_SERVICE_PROD environment variable.");
+        // let files_service = env::var("FILES_SERVICE_PROD")
+        //     .expect("Missing the FILES_SERVICE_PROD environment variable.");
+
+        let files_service =
+            env::var("FILES_SERVICE").expect("Missing the FILES_SERVICE environment variable.");
 
         let file_url = format!("{}/view/{}", files_service, file_name);
 
