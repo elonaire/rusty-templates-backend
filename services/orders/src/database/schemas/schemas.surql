@@ -1,3 +1,6 @@
+-- Enable GraphQL
+DEFINE CONFIG GRAPHQL AUTO;
+
 -- A schema-full user_id table
 DEFINE TABLE user_id SCHEMAFULL;
 -- define some fields
@@ -11,7 +14,7 @@ DEFINE FIELD product_id ON TABLE product_id TYPE string;
 DEFINE INDEX productIndex ON TABLE product_id COLUMNS product_id UNIQUE;
 
 -- A schema-full order table
-DEFINE TABLE order SCHEMAFULL;
+DEFINE TABLE order SCHEMAFULL TYPE RELATION;
 DEFINE FIELD status on TABLE order TYPE string
     -- Allow only these values in the array
     ASSERT $value INSIDE ["Pending", "Confirmed", "Ready", "Completed", "Failed", "Refunded", "OnHold"];
@@ -34,7 +37,7 @@ DEFINE FIELD session_id ON TABLE cart TYPE string;
 -- DEFINE INDEX sessionIdIndex ON TABLE cart COLUMNS session_id,id,archived UNIQUE;
 
 -- A schema-full cart table
-DEFINE TABLE cart_product SCHEMAFULL;
+DEFINE TABLE cart_product SCHEMAFULL TYPE RELATION;
 DEFINE FIELD quantity ON TABLE cart_product TYPE int
     ASSERT $value <= 1;
 DEFINE FIELD license ON TABLE cart_product TYPE record<license>;

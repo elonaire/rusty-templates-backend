@@ -1,3 +1,6 @@
+-- Enable GraphQL
+DEFINE CONFIG GRAPHQL AUTO;
+
 -- A schema-full user_id table
 DEFINE TABLE user_id SCHEMAFULL;
 -- define some fields
@@ -10,7 +13,7 @@ DEFINE FIELD name ON TABLE product TYPE string;
 DEFINE FIELD slug ON TABLE product TYPE option<string>;
 DEFINE EVENT product_created ON TABLE product WHEN $event = "CREATE" THEN (
     -- create slug
-    $value.slug = string::slug($after.name)
+    $this.slug = string::slug($after.name)
 );
 DEFINE FIELD price ON TABLE product TYPE int;
 DEFINE FIELD preview_link ON TABLE product TYPE string;
@@ -33,14 +36,14 @@ DEFINE FIELD use_case on TABLE product TYPE string
 
 /* Migrations */
 -- Migration for product table - add new screenshot column
-UPDATE product SET screenshot = "" WHERE screenshot IS NONE;
+-- UPDATE product SET screenshot = "" WHERE screenshot IS NONE;
 
 -- Migration for product table - price column(from float to int)
-UPDATE product SET price = <int>$this.price;
+-- UPDATE product SET price = <int>$this.price;
 
 -- Migration for product table - slug column
-UPDATE product SET slug = string::slug($this.name);
-UPDATE product SET details_file = "" WHERE details_file IS NONE;
+-- UPDATE product SET slug = string::slug($this.name);
+-- UPDATE product SET details_file = "" WHERE details_file IS NONE;
 
 -- Migration for product table - ui_framework column
-UPDATE product SET ui_framework = "RustyUI" WHERE ui_framework="Rusty UI";
+-- UPDATE product SET ui_framework = "RustyUI" WHERE ui_framework="Rusty UI";
