@@ -53,7 +53,7 @@ services:
       - app-tier
 
   rt-files:
-    image: elonaire/rt-files:latest
+    image: elonaire/files-service:latest
     pull_policy: always
     restart: unless-stopped
     deploy:
@@ -322,7 +322,7 @@ services:
       - PRIMARY_LOGO=${PRIMARY_LOGO}
 
   rt-email:
-    image: elonaire/rt-email:latest
+    image: elonaire/email-service:latest
     pull_policy: always
     restart: unless-stopped
     ports:
