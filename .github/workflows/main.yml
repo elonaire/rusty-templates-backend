@@ -188,7 +188,7 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker buildx build --build-arg SERVICE_NAME=payments --build-arg PORT=3013 -t elonaire/rt-payments:latest --provenance=mode=max --sbom=true --push .
+          docker buildx build --platform linux/amd64,linux/arm64 --build-arg SERVICE_NAME=payments --build-arg PORT=3013 -t elonaire/rt-payments:latest --provenance=mode=max --sbom=true --push .
 
   build_and_deploy_shared_service:
     runs-on: ubuntu-latest
