@@ -127,7 +127,7 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker buildx build --build-arg SERVICE_NAME=products --build-arg PORT=3004 -t elonaire/rt-products:latest --provenance=mode=max --sbom=true --push .
+          docker buildx build --platform linux/amd64,linux/arm64 --build-arg SERVICE_NAME=products --build-arg PORT=3004 -t elonaire/rt-products:latest --provenance=mode=max --sbom=true --push .
 
   build_and_deploy_orders_service:
     runs-on: ubuntu-latest
@@ -157,7 +157,7 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker buildx build --build-arg SERVICE_NAME=orders --build-arg PORT=3010 -t elonaire/rt-orders:latest --provenance=mode=max --sbom=true --push .
+          docker buildx build --platform linux/amd64,linux/arm64 --build-arg SERVICE_NAME=orders --build-arg PORT=3010 -t elonaire/rt-orders:latest --provenance=mode=max --sbom=true --push .
 
 
   build_and_deploy_payments_service:
@@ -218,7 +218,7 @@ jobs:
 
       - name: Build the Docker image
         run: |
-          docker buildx build --build-arg SERVICE_NAME=shared --build-arg PORT=3016 -t elonaire/rt-shared:latest --provenance=mode=max --sbom=true --push .
+          docker buildx build --platform linux/amd64,linux/arm64 --build-arg SERVICE_NAME=shared --build-arg PORT=3016 -t elonaire/rt-shared:latest --provenance=mode=max --sbom=true --push .
 
 
   deploy_to_server:
