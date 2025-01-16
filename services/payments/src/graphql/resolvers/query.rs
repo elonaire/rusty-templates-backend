@@ -1,10 +1,14 @@
-use async_graphql::{Context, Error, Object, Result};
+use async_graphql::{MergedObject, Object};
 
-pub struct Query;
+#[derive(Default)]
+pub struct EmptyQuery;
 
 #[Object]
-impl Query {
-    pub async fn square(&self, ctx: &Context<'_>, num: i32) -> Result<i32> {
-        Ok(num*num)
+impl EmptyQuery {
+    pub async fn health(&self) -> String {
+        "Payments Service is Online!".to_string()
     }
 }
+
+#[derive(MergedObject, Default)]
+pub struct Query(EmptyQuery);

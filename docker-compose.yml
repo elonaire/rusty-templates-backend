@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 networks:
   app-tier:
@@ -15,13 +15,16 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "80-82:80"
       - "443-445:443" # Uncomment this line if you want to use https
     depends_on:
       - rt-frontend
+      - rt-acl
+      - rt-files
+      - rt-products
     volumes:
       - /etc/ssl/certs:/etc/nginx/certs # Uncomment this line if you want to use https
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
@@ -38,14 +41,415 @@ services:
       endpoint_mode: dnsrr
       resources:
         limits:
-          cpus: '0.5'
+          cpus: "0.5"
           memory: 200M
     ports:
       - "8080-8082:8080"
-    # container_name: rt-frontend
-    # depends_on:
-    #   - rt-acl-service
-    #   - rt-shared-service
+    depends_on:
+      - rt-acl
+      - rt-products
+      - rt-files
     networks:
       - app-tier
-  
+
+  rt-files:
+    image: elonaire/files-service:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+    ports:
+      - "3001-3003:3001"
+    depends_on:
+      - rt-acl
+      - rt-files-db
+    networks:
+      - app-tier
+    volumes:
+      - ./services/files/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+      - ./uploads:/usr/src/uploads
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_FILES=${DATABASE_NAME_FILES}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_FILES=${DATABASE_HOST_FILES}
+      - DATABASE_PORT_FILES=${DATABASE_PORT_FILES}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+      - FILES_SERVICE_PROD=${FILES_SERVICE_PROD}
+
+  rt-products:
+    image: elonaire/rt-products:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+    ports:
+      - "3004-3006:3004"
+    depends_on:
+      - rt-acl
+      - rt-products-db
+    networks:
+      - app-tier
+    volumes:
+      - ./services/products/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_PRODUCTS=${DATABASE_NAME_PRODUCTS}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_PRODUCTS=${DATABASE_HOST_PRODUCTS}
+      - DATABASE_PORT_PRODUCTS=${DATABASE_PORT_PRODUCTS}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+
+  rt-acl:
+    image: elonaire/acl-service:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+    ports:
+      - "3007-3009:3007"
+    depends_on:
+      - rt-acl-db
+    networks:
+      - app-tier
+    volumes:
+      - ./services/acl/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_ACL=${DATABASE_NAME_ACL}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_ACL=${DATABASE_HOST_ACL}
+      - DATABASE_PORT_ACL=${DATABASE_PORT_ACL}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+      - GITHUB_OAUTH_CLIENT_ID=${GITHUB_OAUTH_CLIENT_ID}
+      - GITHUB_OAUTH_CLIENT_SECRET=${GITHUB_OAUTH_CLIENT_SECRET}
+      - GITHUB_OAUTH_AUTHORIZE_URL=${GITHUB_OAUTH_AUTHORIZE_URL}
+      - GITHUB_OAUTH_ACCESS_TOKEN_URL=${GITHUB_OAUTH_ACCESS_TOKEN_URL}
+      - OAUTH_REDIRECT_URI=${OAUTH_REDIRECT_URI}
+      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID}
+      - GOOGLE_OAUTH_CLIENT_SECRET=${GOOGLE_OAUTH_CLIENT_SECRET}
+      - GOOGLE_OAUTH_AUTHORIZE_URL=${GOOGLE_OAUTH_AUTHORIZE_URL}
+      - GOOGLE_OAUTH_ACCESS_TOKEN_URL=${GOOGLE_OAUTH_ACCESS_TOKEN_URL}
+      - GOOGLE_OAUTH_REVOKE_TOKEN_URL=${GOOGLE_OAUTH_REVOKE_TOKEN_URL}
+
+  rt-orders:
+    image: elonaire/rt-orders:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+    ports:
+      - "3010-3012:3010"
+    depends_on:
+      - rt-orders-db
+      - rt-acl
+    networks:
+      - app-tier
+    volumes:
+      - ./services/orders/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_ORDERS=${DATABASE_NAME_ORDERS}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_ORDERS=${DATABASE_HOST_ORDERS}
+      - DATABASE_PORT_ORDERS=${DATABASE_PORT_ORDERS}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+
+  rt-payments:
+    image: elonaire/rt-payments:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+    ports:
+      - "3013-3015:3013"
+    depends_on:
+      - rt-payments-db
+      - rt-acl
+    networks:
+      - app-tier
+    volumes:
+      - ./services/payments/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_PAYMENTS=${DATABASE_NAME_PAYMENTS}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_PAYMENTS=${DATABASE_HOST_PAYMENTS}
+      - DATABASE_PORT_PAYMENTS=${DATABASE_PORT_PAYMENTS}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+
+  rt-shared:
+    image: elonaire/rt-shared:latest
+    pull_policy: always
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+    ports:
+      - "3016-3018:3016"
+    depends_on:
+      - rt-shared-db
+      - rt-acl
+    networks:
+      - app-tier
+    volumes:
+      - ./services/shared/database/schemas/schemas.surql:/usr/src/db/schemas.surql
+    environment:
+      - DATABASE_NAMESPACE=${DATABASE_NAMESPACE}
+      - DATABASE_NAME_SHARED=${DATABASE_NAME_SHARED}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_HOST_SHARED=${DATABASE_HOST_SHARED}
+      - DATABASE_PORT_SHARED=${DATABASE_PORT_SHARED}
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+
+  rt-email:
+    image: elonaire/email-service:latest
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - 3019:3019
+    container_name: rt-email
+    depends_on:
+      - rt-acl
+    networks:
+      - app-tier
+    environment:
+      - OAUTH_SERVICE=${OAUTH_SERVICE}
+      - DATABASE_SCHEMA_FILE_PATH=${DATABASE_SCHEMA_FILE_PATH}
+      - ALLOWED_SERVICES_CORS=${ALLOWED_SERVICES_CORS}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - PAYMENTS_SERVICE=${PAYMENTS_SERVICE}
+      - ORDERS_SERVICE=${ORDERS_SERVICE}
+      - EMAIL_SERVICE=${EMAIL_SERVICE}
+      - FILE_UPLOADS_DIR=${FILE_UPLOADS_DIR}
+      - PAYSTACK_SECRET=${PAYSTACK_SECRET}
+      - EXCHANGE_RATES_API_KEY=${EXCHANGE_RATES_API_KEY}
+      - PRODUCTS_SERVICE=${PRODUCTS_SERVICE}
+      - INTERNAL_USER=${INTERNAL_USER}
+      - INTERNAL_USER_PASSWORD=${INTERNAL_USER_PASSWORD}
+      - FILES_SERVICE=${FILES_SERVICE}
+      - PRIMARY_LOGO=${PRIMARY_LOGO}
+
+  rt-acl-db:
+    image: surrealdb/surrealdb:v2.1.4
+    restart: unless-stopped
+    ports:
+      - 8000:8000
+    container_name: rt-acl-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} surrealkv:/db-data/mydatabase.db
+    volumes:
+      - rt-acl-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+  rt-products-db:
+    image: surrealdb/surrealdb:v2.1.4
+    restart: unless-stopped
+    ports:
+      - 8001:8001
+    container_name: rt-products-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8001 surrealkv:/db-data/mydatabase.db
+    volumes:
+      - rt-products-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
+  rt-files-db:
+    image: surrealdb/surrealdb:v2.1.4
+    restart: unless-stopped
+    ports:
+      - 8002:8002
+    container_name: rt-files-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8002 surrealkv:/db-data/mydatabase.db
+    volumes:
+      - rt-files-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
+  rt-orders-db:
+    image: surrealdb/surrealdb:v2.1.4
+    restart: unless-stopped
+    ports:
+      - 8003:8003
+    container_name: rt-orders-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8003 surrealkv:/db-data/mydatabase.db
+    volumes:
+      - rt-orders-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
+  rt-payments-db:
+    image: surrealdb/surrealdb:v2.1.4
+    restart: unless-stopped
+    ports:
+      - 8004:8004
+    container_name: rt-payments-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8004 surrealkv:/db-data/mydatabase.db
+    volumes:
+      - rt-payments-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
+  rt-shared-db:
+    image: surrealdb/surrealdb:v2.1.4
+    restart: unless-stopped
+    ports:
+      - 8005:8005
+    container_name: rt-shared-db
+    networks:
+      - app-tier
+    user: root
+    command: start --log debug --user ${DATABASE_USER} --pass ${DATABASE_PASSWORD} --bind 0.0.0.0:8005 surrealkv:/db-data/mydatabase.db
+    volumes:
+      - rt-shared-db:/db-data
+    environment:
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
+volumes:
+  rt-products-db:
+  rt-acl-db:
+  rt-files-db:
+  rt-orders-db:
+  rt-payments-db:
+  rt-shared-db:

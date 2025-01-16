@@ -1,10 +1,6 @@
-use async_graphql::{Context, Error, Object, Result};
+use async_graphql::MergedObject;
 
-pub struct Mutation;
+use super::payments::mutation::PaymentMutation;
 
-#[Object]
-impl Mutation {
-    pub async fn square(&self, ctx: &Context<'_>, num: i32) -> Result<i32> {
-        Ok(num*num)
-    }
-}
+#[derive(MergedObject, Default)]
+pub struct Mutation(PaymentMutation);

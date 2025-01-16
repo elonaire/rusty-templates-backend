@@ -2,3 +2,8 @@
 .env
 /services/**/db-file
 history.txt
+prod.env
+copy-schemas.sh
+start-services.sh
+copy-from-server.sh
+/services/**/logs

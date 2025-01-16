@@ -1,2 +1,5 @@
--- A schema-full dummy table.
-DEFINE TABLE dummy SCHEMAFULL;
+-- Enable GraphQL
+DEFINE CONFIG GRAPHQL AUTO;
+
+-- A schema-full payment table.
+DEFINE TABLE payment SCHEMAFULL;
