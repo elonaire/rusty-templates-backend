@@ -1,7 +1,7 @@
 use reqwest::{header::HeaderMap as ReqWestHeaderMap, Client as ReqWestClient};
 use std::env;
 
-use crate::graphql::schemas::general::ExchangeRatesResponse;
+// use crate::graphql::schemas::general::ExchangeRatesResponse;
 use async_graphql::{Context, Error, Object, Result};
 use axum::http::HeaderMap;
 use hyper::http::Method;

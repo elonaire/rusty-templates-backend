@@ -58,7 +58,11 @@ impl CartProduct {
     }
 
     async fn license(&self) -> String {
-        self.license.as_ref().map(|t| &t.id).expect("license").to_raw()
+        self.license
+            .as_ref()
+            .map(|t| &t.id)
+            .expect("license")
+            .to_raw()
     }
 }
 
@@ -67,22 +71,5 @@ pub enum CartOperation {
     #[graphql(name = "AddProduct")]
     AddProduct,
     #[graphql(name = "RemoveProduct")]
-    RemoveProduct
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
-#[graphql(complex)]
-pub struct License {
-    #[graphql(skip)]
-    pub id: Option<Thing>,
-    pub name: String,
-    pub price_factor: u64,
-    pub short_description: String,
-}
-
-#[ComplexObject]
-impl License {
-    async fn id(&self) -> String {
-        self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
-    }
+    RemoveProduct,
 }

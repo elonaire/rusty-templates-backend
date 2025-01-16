@@ -12,30 +12,13 @@ use lib::{
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
-use crate::graphql::schemas::general::{CartProduct, License};
+use crate::graphql::schemas::general::CartProduct;
 
 #[derive(Default)]
 pub struct OrderQuery;
 
 #[Object]
 impl OrderQuery {
-    async fn get_licenses(&self, ctx: &Context<'_>) -> Result<Vec<License>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
-
-        let mut external_product_ids_query = db
-            .query(
-                "
-            SELECT * FROM license ORDER BY price_factor ASC
-            ",
-            )
-            .await
-            .map_err(|e| Error::new(e.to_string()))?;
-
-        let response: Vec<License> = external_product_ids_query.take(0)?;
-
-        Ok(response)
-    }
-
     async fn get_raw_cart_products(
         &self,
         ctx: &Context<'_>,

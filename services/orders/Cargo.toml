@@ -22,6 +22,7 @@ uuid = { version = "1.10.0", features = [
 ] }
 tracing-subscriber = "0.3.18"
 tracing = "0.1.40"
+tracing-appender = "0.2.3"
 
 [lints.rust]
 unsafe_code = "forbid"

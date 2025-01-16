@@ -18,8 +18,6 @@ pub struct Product {
     pub price: u64,
     pub preview_link: String,
     pub details_file: String,
-    // #[graphql(skip)]
-    // pub product_details: String,
     pub screenshot: String,
     pub framework: Option<Framework>,
     pub application_layer: Option<ApplicationLayer>,
@@ -38,11 +36,7 @@ impl Product {
             env::var("FILES_SERVICE").expect("Missing the FILES_SERVICE environment variable.");
 
         let file_url = format!("{}/view/{}", files_service, self.details_file);
-        // let client = ReqWestClient::builder()
-        //     .danger_accept_invalid_certs(true)
-        //     .build()
-        //     .unwrap();
-        // let logo_image = fs::read("https://imagedelivery.net/fa3SWf5GIAHiTnHQyqU8IQ/5d0feb5f-2b15-4b86-9cf3-1f99372f4600/public")?;
+
         match reqwest::get(file_url).await {
             Ok(res) => match res.text().await {
                 Ok(data) => {
@@ -114,4 +108,41 @@ pub enum UseCase {
     #[graphql(name = "IoTAdmin")]
     #[serde(rename = "IoTAdmin")]
     IoTAdmin,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
+#[graphql(input_name = "ProductLicenseArtifactInput")]
+#[graphql(complex)]
+pub struct ProductLicenseArtifact {
+    #[graphql(skip)]
+    pub id: Option<Thing>,
+    #[graphql(skip)]
+    pub license: Option<Thing>,
+    pub product_id: String,
+    pub license_id: String,
+    pub file_id: String,
+}
+
+#[ComplexObject]
+impl ProductLicenseArtifact {
+    async fn id(&self) -> String {
+        self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+#[graphql(complex)]
+pub struct License {
+    #[graphql(skip)]
+    pub id: Option<Thing>,
+    pub name: String,
+    pub price_factor: u64,
+    pub short_description: String,
+}
+
+#[ComplexObject]
+impl License {
+    async fn id(&self) -> String {
+        self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
+    }
 }

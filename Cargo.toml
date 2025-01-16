@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["services/shared", "services/orders", "services/payments", "services/preview","services/products", "lib"]
+members = ["services/shared", "services/orders", "services/payments","services/products", "lib"]
 
 [profile.release]
 strip = true    # Automatically strip symbols from the binary.

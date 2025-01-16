@@ -71,9 +71,7 @@ impl OrderMutation {
                         LET $cart = type::thing($cart_id);
                         LET $new_order = (RELATE $user -> order -> $cart CONTENT {
                             status: 'Pending',
-                            in: $user,
-                            out: $cart
-                          } RETURN AFTER);
+                        } RETURN AFTER);
                         RETURN $new_order;
                         COMMIT TRANSACTION;
                         ",

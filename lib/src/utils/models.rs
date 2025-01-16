@@ -1,6 +1,6 @@
+use async_graphql::{Enum, InputObject, SimpleObject};
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
-use async_graphql::{Enum, InputObject, SimpleObject};
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct User {
@@ -21,6 +21,13 @@ pub struct Product {
     #[graphql(skip)]
     pub id: Option<Thing>,
     pub product_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct UploadedFile {
+    #[graphql(skip)]
+    pub id: Option<Thing>,
+    pub file_id: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
@@ -56,7 +63,7 @@ pub struct GetProductPriceResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InitiatePaymentVar {
     #[serde(rename = "userPaymentDetails")]
-    pub user_payment_details: UserPaymentDetails
+    pub user_payment_details: UserPaymentDetails,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
@@ -211,7 +218,7 @@ pub struct SignInResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserLoginsVar {
     #[serde(rename = "rawUserDetails")]
-    pub raw_user_details: UserLogins
+    pub raw_user_details: UserLogins,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
@@ -224,16 +231,16 @@ pub struct License {
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct GetProductArtifactVar {
-    #[serde(rename = "externalProductId")]
-    pub external_product_id: String,
-    #[serde(rename = "externalLicenseId")]
-    pub external_license_id: String
+    #[serde(rename = "productId")]
+    pub product_id: String,
+    #[serde(rename = "licenseId")]
+    pub license_id: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct GetProductArtifactResponse {
     #[serde(rename = "getProductArtifact")]
-    pub get_product_artifact: String
+    pub get_product_artifact: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
@@ -254,5 +261,41 @@ pub struct BuyProductArtifactVar {
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct BuyProductArtifactResponse {
     #[serde(rename = "buyProductArtifactWebhook")]
-    pub buy_product_artifact_webhook: String
+    pub buy_product_artifact_webhook: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetFileIdVar {
+    #[serde(rename = "fileName")]
+    pub file_name: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetFileIdResponse {
+    #[serde(rename = "getFileId")]
+    pub get_file_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetFileNameVar {
+    #[serde(rename = "fileId")]
+    pub file_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetFileNameResponse {
+    #[serde(rename = "getFileName")]
+    pub get_file_name: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetLicensePriceFactorVar {
+    #[serde(rename = "licenseId")]
+    pub license_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct GetLicensePriceFactorResponse {
+    #[serde(rename = "getLicensePriceFactor")]
+    pub get_license_price_factor: u64,
 }

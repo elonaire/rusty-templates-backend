@@ -14,7 +14,7 @@ DEFINE FIELD product_id ON TABLE product_id TYPE string;
 DEFINE INDEX productIndex ON TABLE product_id COLUMNS product_id UNIQUE;
 
 -- A schema-full comment table.
-DEFINE TABLE comment SCHEMAFULL TYPE RELATION;
+DEFINE TABLE comment SCHEMAFULL TYPE RELATION IN user_id OUT product_id;
 -- define some fields.
 DEFINE FIELD content ON TABLE comment TYPE string;
 -- DEFINE FIELD published_date ON TABLE comment VALUE <datetime>$value;
@@ -26,14 +26,14 @@ DEFINE FIELD in ON TABLE comment TYPE record<user_id>;
 DEFINE FIELD out ON TABLE comment TYPE record<product_id>;
 
 -- Relationship between comment and comment
-DEFINE TABLE has_reply SCHEMAFULL TYPE RELATION;
+DEFINE TABLE has_reply SCHEMAFULL TYPE RELATION IN comment OUT comment;
 DEFINE INDEX commentCommentIndex ON TABLE has_reply
 COLUMNS in, out UNIQUE;
 DEFINE FIELD in ON TABLE has_reply TYPE record<comment>;
 DEFINE FIELD out ON TABLE has_reply TYPE record<comment>;
 
 -- A schema-full reaction table.
-DEFINE TABLE reaction SCHEMAFULL TYPE RELATION;
+DEFINE TABLE reaction SCHEMAFULL TYPE RELATION IN user_id OUT comment;
 -- define some fields.
 DEFINE FIELD type ON TABLE reaction TYPE string
 -- Allow only these values in the array
@@ -48,7 +48,7 @@ DEFINE FIELD in ON TABLE reaction TYPE record<user_id>;
 DEFINE FIELD out ON TABLE reaction TYPE record<comment>;
 
 -- A schema-full rating table.
-DEFINE TABLE rating SCHEMAFULL TYPE RELATION;
+DEFINE TABLE rating SCHEMAFULL TYPE RELATION IN user_id OUT product_id;
 -- Define fields.
 DEFINE FIELD rating_value ON TABLE rating TYPE int
   ASSERT $value >= 1 AND $value <= 5; -- Assuming rating values between 1 and 5
