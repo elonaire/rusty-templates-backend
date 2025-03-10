@@ -30,7 +30,12 @@ impl ProductMutation {
                 column: "user_id".into(),
                 foreign_key: auth_status.sub,
             };
-            let owner_result = add_foreign_key_if_not_exists::<User>(ctx, foreign_key).await;
+            let owner_result =
+                add_foreign_key_if_not_exists::<Extension<Arc<Surreal<Client>>>, User>(
+                    db,
+                    foreign_key,
+                )
+                .await;
 
             match owner_result {
                 Some(owner) => {
@@ -78,10 +83,17 @@ impl ProductMutation {
                 foreign_key: auth_status.sub.clone(),
             };
 
-            let _internal_user = add_foreign_key_if_not_exists::<User>(ctx, user_fk_body).await;
+            let _internal_user = add_foreign_key_if_not_exists::<
+                Extension<Arc<Surreal<Client>>>,
+                User,
+            >(db, user_fk_body)
+            .await;
 
-            let internal_file =
-                add_foreign_key_if_not_exists::<UploadedFile>(ctx, file_fk_body).await;
+            let internal_file = add_foreign_key_if_not_exists::<
+                Extension<Arc<Surreal<Client>>>,
+                UploadedFile,
+            >(db, file_fk_body)
+            .await;
 
             let mut product_artifact_query = db
                 .query(

@@ -70,8 +70,16 @@ impl CartMutation {
                 foreign_key: external_license_id.clone(),
             };
 
-            let product_fk = add_foreign_key_if_not_exists::<Product>(ctx, product_fk_body).await;
-            let license_fk = add_foreign_key_if_not_exists::<License>(ctx, license_fk_body).await;
+            let product_fk = add_foreign_key_if_not_exists::<
+                Extension<Arc<Surreal<Client>>>,
+                Product,
+            >(db, product_fk_body)
+            .await;
+            let license_fk = add_foreign_key_if_not_exists::<
+                Extension<Arc<Surreal<Client>>>,
+                License,
+            >(db, license_fk_body)
+            .await;
 
             let internal_product_id = product_fk
                 .unwrap()
@@ -110,7 +118,11 @@ impl CartMutation {
                         foreign_key: auth_status.sub,
                     };
 
-                    let user_fk = add_foreign_key_if_not_exists::<User>(ctx, user_fk_body).await;
+                    let user_fk = add_foreign_key_if_not_exists::<
+                        Extension<Arc<Surreal<Client>>>,
+                        User,
+                    >(db, user_fk_body)
+                    .await;
 
                     let internal_user_id = user_fk
                         .unwrap()

@@ -1,4 +1,5 @@
 pub mod auth;
 pub mod custom_error;
-pub mod models;
+pub mod custom_traits;
 pub mod graphql_api;
+pub mod models;

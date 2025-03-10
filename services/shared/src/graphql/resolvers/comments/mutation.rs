@@ -40,9 +40,14 @@ impl CommentMutation {
                 foreign_key: product_id,
             };
 
-            let author_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;
-            let commented_product_result =
-                add_foreign_key_if_not_exists::<Product>(ctx, product_fk).await;
+            let author_result =
+                add_foreign_key_if_not_exists::<Extension<Arc<Surreal<Client>>>, User>(db, user_fk)
+                    .await;
+            let commented_product_result = add_foreign_key_if_not_exists::<
+                Extension<Arc<Surreal<Client>>>,
+                Product,
+            >(db, product_fk)
+            .await;
 
             let mut post_comment_transaction = db
                 .query(

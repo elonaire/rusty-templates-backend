@@ -37,7 +37,9 @@ impl OrderMutation {
 
             let session_id = set_session_cookie(&mut headers.clone(), ctx);
 
-            let buyer_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;
+            let buyer_result =
+                add_foreign_key_if_not_exists::<Extension<Arc<Surreal<Client>>>, User>(db, user_fk)
+                    .await;
             let buyer_result_clone = buyer_result.clone();
             let internal_user_id = buyer_result_clone
                 .unwrap()
@@ -153,7 +155,9 @@ impl OrderMutation {
                 foreign_key: auth_status.sub.clone(),
             };
 
-            let buyer_result = add_foreign_key_if_not_exists::<User>(ctx, user_fk).await;
+            let buyer_result =
+                add_foreign_key_if_not_exists::<Extension<Arc<Surreal<Client>>>, User>(db, user_fk)
+                    .await;
             let buyer_result_clone = buyer_result.clone();
             let internal_user_id = buyer_result_clone
                 .unwrap()
