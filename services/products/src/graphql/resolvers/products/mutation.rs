@@ -4,9 +4,8 @@ use crate::graphql::schemas::general::Product;
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
 use lib::{
-    integration::{
-        auth::check_auth_from_acl, file::get_file_id, foreign_key::add_foreign_key_if_not_exists,
-    },
+    integration::{file::get_file_id, foreign_key::add_foreign_key_if_not_exists},
+    middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
         models::{ForeignKey, UploadedFile, User},
@@ -23,7 +22,7 @@ impl ProductMutation {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let auth_status = check_auth_from_acl(headers.clone()).await?;
+            let auth_status = check_auth_from_acl(headers).await?;
 
             let foreign_key = ForeignKey {
                 table: "user_id".into(),
@@ -68,7 +67,7 @@ impl ProductMutation {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let auth_status = check_auth_from_acl(headers.clone()).await?;
+            let auth_status = check_auth_from_acl(headers).await?;
             let file_id: String = get_file_id(headers, file_name).await?;
 
             let file_fk_body = ForeignKey {

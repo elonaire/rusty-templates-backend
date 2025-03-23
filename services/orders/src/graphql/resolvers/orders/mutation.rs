@@ -8,9 +8,10 @@ use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
 use lib::{
     integration::{
-        auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists,
-        payments::initiate_payment_integration, user::get_user_email,
+        foreign_key::add_foreign_key_if_not_exists, payments::initiate_payment_integration,
+        user::get_user_email,
     },
+    middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
         models::{ForeignKey, OrderStatus, User, UserPaymentDetails},
@@ -27,7 +28,7 @@ impl OrderMutation {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let auth_status = check_auth_from_acl(headers.clone()).await?;
+            let auth_status = check_auth_from_acl(headers).await?;
 
             let user_fk = ForeignKey {
                 table: "user_id".into(),
@@ -147,7 +148,7 @@ impl OrderMutation {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let auth_status = check_auth_from_acl(headers.clone()).await?;
+            let auth_status = check_auth_from_acl(headers).await?;
 
             let user_fk = ForeignKey {
                 table: "user_id".into(),

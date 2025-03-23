@@ -4,7 +4,7 @@ use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
 use hyper::HeaderMap;
 use lib::{
-    integration::auth::check_auth_from_acl,
+    middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
         models::{ArtifactsPurchaseDetails, OrderStatus},
@@ -55,7 +55,7 @@ impl OrderQuery {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let _auth_status = check_auth_from_acl(headers.clone()).await?;
+            let _auth_status = check_auth_from_acl(headers).await?;
 
             let mut order_artifacts_query = db
                 .query(
@@ -108,7 +108,7 @@ impl OrderQuery {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let auth_status = check_auth_from_acl(headers.clone()).await?;
+            let auth_status = check_auth_from_acl(headers).await?;
 
             let mut customer_past_orders_query = db
                 .query(

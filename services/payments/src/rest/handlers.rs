@@ -8,9 +8,9 @@ use hmac::{Hmac, Mac};
 use hyper::header::COOKIE;
 use lib::{
     integration::{
-        auth::internal_sign_in,
         email::send_email,
         file::purchase_product_artifact,
+        grpc::clients::acl_service::{acl_client::AclClient, Empty},
         order::{get_all_artifacts_for_order, update_order},
     },
     utils::models::{Email, EmailUser, OrderStatus},
@@ -57,18 +57,33 @@ pub async fn handle_paystack_webhook(
                 if let Some(data) = body.get("data") {
                     if let Some(reference) = data.get("reference").and_then(|r| r.as_str()) {
                         println!("Charge Success Body: {:?}", data);
-                        if let Ok(internal_jwt) = internal_sign_in().await {
+                        // TODO: Implement internal sign in logic using gRPC
+                        let acl_grpc_client =
+                            AclClient::connect("http://[::1]:50051").await.map_err(|e| {
+                                tracing::error!("Failed to connect to ACL service: {}", e);
+                                // (
+                                //     StatusCode::SERVICE_UNAVAILABLE,
+                                //     format!("Failed to connect to ACL service"),
+                                // )
+                                //     .into_response()
+                            });
+                        let request = tonic::Request::new(Empty {});
+
+                        if let Ok(auth_res) =
+                            acl_grpc_client.unwrap().sign_in_as_service(request).await
+                        {
                             let mut header_map = HeaderMap::new();
+                            let internal_jwt = auth_res.into_inner().token;
                             header_map.insert(
                                 "Authorization",
-                                format!("Bearer {}", &internal_jwt)
+                                format!("Bearer {:?}", &internal_jwt)
                                     .as_str()
                                     .parse()
                                     .unwrap(),
                             );
                             header_map.insert(
                                 COOKIE,
-                                format!("oauth_client=;t={}", &internal_jwt)
+                                format!("oauth_client=;t={:?}", &internal_jwt)
                                     .as_str()
                                     .parse()
                                     .unwrap(),

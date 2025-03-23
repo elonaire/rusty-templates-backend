@@ -4,7 +4,8 @@ use crate::graphql::schemas::ratings::Rating;
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
 use lib::{
-    integration::{auth::check_auth_from_acl, foreign_key::add_foreign_key_if_not_exists},
+    integration::foreign_key::add_foreign_key_if_not_exists,
+    middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
         models::{ForeignKey, Product, User},
@@ -26,7 +27,7 @@ impl RatingMutation {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let auth_status = check_auth_from_acl(headers.clone()).await?;
+            let auth_status = check_auth_from_acl(&headers).await?;
 
             let user_fk = ForeignKey {
                 table: "user_id".into(),

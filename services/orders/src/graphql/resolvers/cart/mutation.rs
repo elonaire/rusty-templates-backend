@@ -6,10 +6,10 @@ use axum::{http::HeaderMap, Extension};
 use hyper::header::SET_COOKIE;
 use lib::{
     integration::{
-        auth::check_auth_from_acl,
         foreign_key::add_foreign_key_if_not_exists,
         product::{get_license_price_factor, get_product_artifact, get_product_price},
     },
+    middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
         models::{ForeignKey, License, Product, User},
@@ -110,7 +110,7 @@ impl CartMutation {
             let license_price_factor =
                 get_license_price_factor(&headers, license_fk.unwrap().license_id).await?;
 
-            match check_auth_from_acl(headers.clone()).await {
+            match check_auth_from_acl(headers).await {
                 Ok(auth_status) => {
                     let user_fk_body = ForeignKey {
                         table: "user_id".into(),

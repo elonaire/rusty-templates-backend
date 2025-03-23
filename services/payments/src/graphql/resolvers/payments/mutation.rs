@@ -6,7 +6,7 @@ use async_graphql::{Context, Error, Object, Result};
 use axum::http::HeaderMap;
 use hyper::http::Method;
 use lib::{
-    integration::auth::check_auth_from_acl,
+    middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
         models::{InitializePaymentResponse, UserPaymentDetails},
@@ -24,7 +24,7 @@ impl PaymentMutation {
         mut user_payment_details: UserPaymentDetails,
     ) -> Result<InitializePaymentResponse> {
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let _auth_status = check_auth_from_acl(headers.clone()).await?;
+            let _auth_status = check_auth_from_acl(headers).await?;
 
             let client = ReqWestClient::builder()
                 .danger_accept_invalid_certs(true)
