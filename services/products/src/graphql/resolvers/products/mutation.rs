@@ -3,8 +3,12 @@ use std::sync::Arc;
 use crate::graphql::schemas::general::Product;
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
+use hyper::header::{HeaderValue, AUTHORIZATION, COOKIE};
 use lib::{
-    integration::{file::get_file_id, foreign_key::add_foreign_key_if_not_exists},
+    integration::{
+        foreign_key::add_foreign_key_if_not_exists,
+        grpc::clients::files_service::{files_service_client::FilesServiceClient, FileName},
+    },
     middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
@@ -12,6 +16,7 @@ use lib::{
     },
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
+use tonic::metadata::MetadataValue;
 
 #[derive(Default)]
 pub struct ProductMutation;
@@ -68,7 +73,37 @@ impl ProductMutation {
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let auth_status = check_auth_from_acl(headers).await?;
-            let file_id: String = get_file_id(headers, file_name).await?;
+            let mut files_grpc_client = FilesServiceClient::connect("http://[::1]:50053")
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to connect to Files service: {}", e);
+                    Error::new("Failed to connect to Files service".to_string())
+                })?;
+            let mut request = tonic::Request::new(FileName { file_name });
+
+            let default_header_value = HeaderValue::from_static("");
+
+            let auth_header = headers.get(AUTHORIZATION).unwrap_or(&default_header_value);
+            let cookie_header = headers.get(COOKIE).unwrap_or(&default_header_value);
+
+            let token: MetadataValue<_> = auth_header
+                .to_str()
+                .unwrap()
+                .parse()
+                .map_err(|_e| Error::new("Failed to authenticate"))?;
+
+            request.metadata_mut().insert("authorization", token);
+
+            let cookie: MetadataValue<_> = cookie_header
+                .to_str()
+                .unwrap()
+                .parse()
+                .map_err(|_e| Error::new("Failed to authenticate"))?;
+
+            request.metadata_mut().insert("cookie", cookie);
+
+            let res = files_grpc_client.get_file_id(request).await?;
+            let file_id: String = res.into_inner().file_id;
 
             let file_fk_body = ForeignKey {
                 table: "file_id".into(),

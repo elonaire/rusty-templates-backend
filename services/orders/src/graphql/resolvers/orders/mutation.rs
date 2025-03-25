@@ -8,8 +8,11 @@ use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
 use lib::{
     integration::{
-        foreign_key::add_foreign_key_if_not_exists, payments::initiate_payment_integration,
-        user::get_user_email,
+        foreign_key::add_foreign_key_if_not_exists,
+        grpc::clients::acl_service::{
+            acl_client::AclClient, GetUserEmailRequest, GetUserEmailResponse,
+        },
+        payments::initiate_payment_integration,
     },
     middleware::auth::graphql::check_auth_from_acl,
     utils::{
@@ -62,8 +65,6 @@ impl OrderMutation {
 
             let existing_cart: Option<Cart> = existing_cart_query.take(0)?;
 
-            println!("existing_cart: {:?}", existing_cart);
-
             match existing_cart {
                 Some(cart) => {
                     let mut create_order_transaction = db
@@ -93,16 +94,20 @@ impl OrderMutation {
 
                     let new_order: Vec<Order> = create_order_transaction.take(0)?;
 
-                    println!("new_order: {:?}", new_order);
+                    let acl_grpc_client =
+                        AclClient::connect("http://[::1]:50051").await.map_err(|e| {
+                            tracing::error!("Failed to connect to ACL service: {}", e);
+                        });
+                    let request = tonic::Request::new(GetUserEmailRequest {
+                        user_id: buyer_result.unwrap().user_id.clone(),
+                    });
 
-                    let get_user_email_res =
-                        get_user_email(ctx, buyer_result.unwrap().user_id.clone()).await;
-                    println!("get_user_email_res: {:?}", get_user_email_res);
+                    let get_user_email_res = acl_grpc_client.unwrap().get_user_email(request).await;
 
                     match get_user_email_res {
                         Ok(email) => {
                             let payment_info = UserPaymentDetails {
-                                email,
+                                email: email.into_inner().email,
                                 amount: cart.total_amount as u64,
                                 reference: new_order[0]
                                     .id
