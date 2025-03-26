@@ -1,0 +1,35 @@
+syntax = "proto3";
+package products;
+
+service ProductsService {
+    rpc GetProductPrice(ProductId) returns (ProductPrice);
+    rpc GetProductArtifact(RetrieveProductArtifactArgs) returns (ProductArtifact);
+    rpc GetLicensePriceFactor(GetLicensePriceFactorArgs) returns (GetLicensePriceFactorResponse);
+}
+
+message ProductId {
+    string product_id = 1;
+}
+
+message ProductPrice {
+    uint64 price = 1;
+}
+
+message Empty {}
+
+message RetrieveProductArtifactArgs {
+    string product_id = 1;
+    string license_id = 2;
+}
+
+message ProductArtifact {
+    string artifact = 1;
+}
+
+message GetLicensePriceFactorArgs {
+    string license_id = 1;
+}
+
+message GetLicensePriceFactorResponse {
+    uint64 price_factor = 1;
+}

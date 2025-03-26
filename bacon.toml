@@ -103,7 +103,7 @@ allow_warnings = true
 background = false
 on_change_strategy = "kill_then_restart"
 default_watch = false
-watch = ["services/products"]
+watch = ["services/products", "lib"]
 
 [jobs.run-orders]
 command = [
@@ -115,7 +115,7 @@ allow_warnings = true
 background = false
 on_change_strategy = "kill_then_restart"
 default_watch = false
-watch = ["services/orders"]
+watch = ["services/orders", "lib"]
 
 [jobs.run-payments]
 command = [
@@ -127,7 +127,7 @@ allow_warnings = true
 background = false
 on_change_strategy = "kill_then_restart"
 default_watch = false
-watch = ["services/payments"]
+watch = ["services/payments", "lib"]
 
 [jobs.run-shared]
 command = [
@@ -139,7 +139,7 @@ allow_warnings = true
 background = false
 on_change_strategy = "kill_then_restart"
 default_watch = false
-watch = ["services/shared"]
+watch = ["services/shared", "lib"]
 
 # This parameterized job runs the example of your choice, as soon
 # as the code compiles.

@@ -7,7 +7,10 @@ use hyper::header::SET_COOKIE;
 use lib::{
     integration::{
         foreign_key::add_foreign_key_if_not_exists,
-        product::{get_license_price_factor, get_product_artifact, get_product_price},
+        grpc::clients::product_service::{
+            products_service_client::ProductsServiceClient, GetLicensePriceFactorArgs, ProductId,
+            RetrieveProductArtifactArgs,
+        },
     },
     middleware::auth::graphql::check_auth_from_acl,
     utils::{
@@ -97,18 +100,42 @@ impl CartMutation {
                 .expect("id")
                 .to_raw();
 
-            let product_price = get_product_price(external_product_id.clone()).await?;
+            let mut products_grpc_client = ProductsServiceClient::connect("http://[::1]:50054")
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to connect to Products service: {}", e);
+                })
+                .unwrap();
 
-            let product_artifact = get_product_artifact(
-                &headers,
-                external_product_id.clone(),
-                external_license_id.clone(),
-            )
-            .await?;
+            let get_product_price_request = tonic::Request::new(ProductId {
+                product_id: external_product_id.clone(),
+            });
+            let product_price = products_grpc_client
+                .get_product_price(get_product_price_request)
+                .await?
+                .into_inner()
+                .price;
+
+            let get_product_artifact_request = tonic::Request::new(RetrieveProductArtifactArgs {
+                product_id: external_product_id.clone(),
+                license_id: external_license_id.clone(),
+            });
+            let product_artifact = products_grpc_client
+                .get_product_artifact(get_product_artifact_request)
+                .await?
+                .into_inner()
+                .artifact;
+
             tracing::debug!("product_artifact: {:?}", product_artifact);
 
-            let license_price_factor =
-                get_license_price_factor(&headers, license_fk.unwrap().license_id).await?;
+            let get_license_price_factor_request = tonic::Request::new(GetLicensePriceFactorArgs {
+                license_id: external_license_id.clone(),
+            });
+            let license_price_factor = products_grpc_client
+                .get_license_price_factor(get_license_price_factor_request)
+                .await?
+                .into_inner()
+                .price_factor;
 
             match check_auth_from_acl(headers).await {
                 Ok(auth_status) => {

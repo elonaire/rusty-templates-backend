@@ -12,3 +12,7 @@ pub mod email_service {
 pub mod files_service {
     tonic::include_proto!("files");
 }
+
+pub mod product_service {
+    tonic::include_proto!("products");
+}
