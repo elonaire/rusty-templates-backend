@@ -13,6 +13,10 @@ pub mod files_service {
     tonic::include_proto!("files");
 }
 
-pub mod product_service {
+pub mod products_service {
     tonic::include_proto!("products");
+}
+
+pub mod orders_service {
+    tonic::include_proto!("orders");
 }

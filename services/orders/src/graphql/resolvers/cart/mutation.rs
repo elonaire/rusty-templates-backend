@@ -7,7 +7,7 @@ use hyper::header::SET_COOKIE;
 use lib::{
     integration::{
         foreign_key::add_foreign_key_if_not_exists,
-        grpc::clients::product_service::{
+        grpc::clients::products_service::{
             products_service_client::ProductsServiceClient, GetLicensePriceFactorArgs, ProductId,
             RetrieveProductArtifactArgs,
         },

@@ -1,0 +1,35 @@
+syntax = "proto3";
+package orders;
+
+service OrdersService {
+    rpc UpdateOrder(UpdateOrderPayload) returns (UpdateOrderResponse);
+    rpc GetAllArtifactsForOrder(GetAllArtifactsForOrderPayload) returns (ArtifactsPurchaseDetails);
+}
+
+message UpdateOrderPayload {
+    string order_id = 1;
+    OrderStatus status = 2;
+}
+
+enum OrderStatus {
+    PENDING = 0;
+    CONFIRMED = 1;
+    READY = 2;
+    COMPLETED = 3;
+    FAILED = 4;
+    REFUNDED = 5;
+    ONHOLD = 6;
+}
+
+message UpdateOrderResponse {
+    string status_str = 1;
+}
+
+message GetAllArtifactsForOrderPayload {
+    string order_id = 1;
+}
+
+message ArtifactsPurchaseDetails {
+    string buyer_id = 1;
+    repeated string artifacts = 2;
+}

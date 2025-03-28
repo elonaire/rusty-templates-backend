@@ -7,18 +7,17 @@ use hex;
 use hmac::{Hmac, Mac};
 use hyper::header::COOKIE;
 use lib::{
-    integration::{
-        // email::send_email,
-        // file::purchase_product_artifact,
-        grpc::clients::{
-            acl_service::{acl_client::AclClient, Empty},
-            email_service::{
-                email_service_client::EmailServiceClient, Email as TonicEmail,
-                EmailUser as TonicEmailUser,
-            },
-            files_service::{files_service_client::FilesServiceClient, PurchaseFileDetails},
+    integration::grpc::clients::{
+        acl_service::{acl_client::AclClient, Empty},
+        email_service::{
+            email_service_client::EmailServiceClient, Email as TonicEmail,
+            EmailUser as TonicEmailUser,
         },
-        order::{get_all_artifacts_for_order, update_order},
+        files_service::{files_service_client::FilesServiceClient, PurchaseFileDetails},
+        orders_service::{
+            orders_service_client::OrdersServiceClient, GetAllArtifactsForOrderPayload,
+            UpdateOrderPayload,
+        },
     },
     utils::models::{Email, EmailUser, OrderStatus},
 };
@@ -68,15 +67,23 @@ pub async fn handle_paystack_webhook(
                 if let Some(data) = body.get("data") {
                     if let Some(reference) = data.get("reference").and_then(|r| r.as_str()) {
                         // Internal sign in logic using gRPC
-                        let acl_grpc_client =
-                            AclClient::connect("http://[::1]:50051").await.map_err(|e| {
-                                tracing::error!("Failed to connect to ACL service: {}", e);
-                            });
+                        let mut acl_grpc_client =
+                            match AclClient::connect("http://[::1]:50051").await {
+                                Ok(client) => client,
+                                Err(e) => {
+                                    tracing::error!("Failed to connect to ACL service: {}", e);
+                                    return (
+                                        StatusCode::NOT_FOUND,
+                                        format!(
+                                        "Transaction successful but could not reach ACL service."
+                                    ),
+                                    )
+                                        .into_response();
+                                }
+                            };
                         let request = tonic::Request::new(Empty {});
 
-                        if let Ok(auth_res) =
-                            acl_grpc_client.unwrap().sign_in_as_service(request).await
-                        {
+                        if let Ok(auth_res) = acl_grpc_client.sign_in_as_service(request).await {
                             let mut header_map = HeaderMap::new();
                             let internal_jwt = auth_res.into_inner().token;
                             header_map.insert(
@@ -94,39 +101,66 @@ pub async fn handle_paystack_webhook(
                                     .unwrap(),
                             );
 
-                            // Update order status
-                            if let Err(e) = update_order(
-                                header_map.clone(),
-                                reference.to_string(),
-                                OrderStatus::Confirmed,
+                            let mut orders_grpc_client = match OrdersServiceClient::connect(
+                                "http://[::1]:50055",
                             )
                             .await
                             {
+                                Ok(client) => client,
+                                Err(e) => {
+                                    tracing::error!("Failed to connect to Orders service: {}", e);
+                                    return (
+                                            StatusCode::NOT_FOUND,
+                                            format!(
+                                            "Transaction successful but could not reach Orders service!"
+                                        ),
+                                        )
+                                            .into_response();
+                                }
+                            };
+
+                            let request = tonic::Request::new(UpdateOrderPayload {
+                                order_id: reference.to_string(),
+                                status: OrderStatus::Confirmed.try_into().unwrap(),
+                            });
+                            // Update order status
+                            if let Err(e) = orders_grpc_client.update_order(request).await {
                                 tracing::error!("Failed to update order: {:?}", e);
-                                // return (
-                                //     StatusCode::BAD_REQUEST,
-                                //     format!("Transaction successful but could not update order status!"),
-                                // ).into_response();
+                                return (
+                                    StatusCode::BAD_REQUEST,
+                                    format!(
+                                        "Transaction successful but could not update order status!"
+                                    ),
+                                )
+                                    .into_response();
                             }
 
                             // give ownership rights to artifacts
                             // TODO: Change to gRPC for this. Implement gRPC server & client for orders service
-
-                            if let Ok(artifacts) = get_all_artifacts_for_order(
-                                header_map.clone(),
-                                reference.to_string(),
-                            )
-                            .await
+                            let request = tonic::Request::new(GetAllArtifactsForOrderPayload {
+                                order_id: reference.to_string(),
+                            });
+                            if let Ok(artifacts) = orders_grpc_client
+                                .get_all_artifacts_for_order(request)
+                                .await
                             {
-                                let files_service_grpc_client =
-                                    FilesServiceClient::connect("http://[::1]:50053")
-                                        .await
-                                        .map_err(|e| {
+                                let mut files_service_grpc_client =
+                                    match FilesServiceClient::connect("http://[::1]:50053").await {
+                                        Ok(client) => client,
+                                        Err(e) => {
                                             tracing::error!(
                                                 "Failed to connect to Files service: {}",
                                                 e
                                             );
-                                        });
+
+                                            return (
+                                                StatusCode::NOT_FOUND,
+                                                format!("Transaction successful but could not reach Files service!"),
+                                            )
+                                                .into_response();
+                                        }
+                                    };
+                                let artifacts = artifacts.into_inner();
 
                                 for artifact in artifacts.artifacts.iter() {
                                     let request = tonic::Request::new(PurchaseFileDetails {
@@ -134,20 +168,8 @@ pub async fn handle_paystack_webhook(
                                         file_id: artifact.clone(),
                                     });
 
-                                    // if let Err(e) = purchase_product_artifact(
-                                    //     &header_map.clone(),
-                                    //     artifact.clone(),
-                                    //     artifacts.buyer_id.clone(),
-                                    // )
-                                    // .await
-                                    // {
-                                    //     eprintln!("Failed to update artifacts purchases: {:?}, artifact: {}", e, artifact);
-                                    // };
-                                    if let Err(e) = files_service_grpc_client
-                                        .clone()
-                                        .unwrap()
-                                        .purchase_file(request)
-                                        .await
+                                    if let Err(e) =
+                                        files_service_grpc_client.purchase_file(request).await
                                     {
                                         tracing::error!("Failed to purchase file: {:?}", e);
                                     }
@@ -196,15 +218,22 @@ pub async fn handle_paystack_webhook(
                             };
 
                             if let Some(email) = confirmed_mail {
-                                let email_service_grpc_client =
-                                    EmailServiceClient::connect("http://[::1]:50052")
-                                        .await
-                                        .map_err(|e| {
+                                let mut email_service_grpc_client =
+                                    match EmailServiceClient::connect("http://[::1]:50052").await {
+                                        Ok(client) => client,
+                                        Err(e) => {
                                             tracing::error!(
-                                                "Failed to connect to Files service: {}",
+                                                "Failed to connect to Email service: {}",
                                                 e
                                             );
-                                        });
+
+                                            return (
+                                                    StatusCode::NOT_FOUND,
+                                                    format!("Transaction successful but could not reach Email service!"),
+                                                )
+                                                    .into_response();
+                                        }
+                                    };
 
                                 let request = tonic::Request::new(TonicEmail {
                                     recipient: Some(TonicEmailUser {
@@ -219,14 +248,14 @@ pub async fn handle_paystack_webhook(
                                     body: email.body,
                                 });
 
-                                if let Err(e) =
-                                    email_service_grpc_client.unwrap().send_email(request).await
+                                if let Err(e) = email_service_grpc_client.send_email(request).await
                                 {
                                     eprintln!("Failed to send email: {:?}", e);
-                                    // return (
-                                    //     StatusCode::BAD_REQUEST,
-                                    //     format!("Transaction successful but could not send email!"),
-                                    // ).into_response();
+                                    return (
+                                        StatusCode::BAD_REQUEST,
+                                        format!("Transaction successful but could not send email!"),
+                                    )
+                                        .into_response();
                                 }
                             }
                         };

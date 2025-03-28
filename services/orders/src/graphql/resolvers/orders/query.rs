@@ -12,7 +12,7 @@ use lib::{
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
-use crate::graphql::schemas::general::CartProduct;
+use crate::{graphql::schemas::general::CartProduct, utils::orders::get_all_artifacts_for_order};
 
 #[derive(Default)]
 pub struct OrderQuery;
@@ -57,44 +57,8 @@ impl OrderQuery {
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let _auth_status = check_auth_from_acl(headers).await?;
 
-            let mut order_artifacts_query = db
-                .query(
-                    "
-                    BEGIN TRANSACTION;
-                    LET $order_id = type::thing($id);
-                    LET $artifacts = SELECT VALUE artifact FROM cart_product WHERE in=(SELECT VALUE ->cart FROM ONLY $order_id LIMIT 1)[0];
-                    RETURN $artifacts;
-                    COMMIT TRANSACTION;
-                    "
-                )
-                .bind(("id", format!("order:{}", order_id)))
-                .await
-                .map_err(|e| Error::new(e.to_string()))?;
-
-            let artifacts: Vec<String> = order_artifacts_query.take(0)?;
-
-            let mut buyer_id_query = db
-                .query(
-                    "
-                    BEGIN TRANSACTION;
-                    LET $order = type::thing($id);
-                    LET $buyer = SELECT VALUE (<-user_id.user_id)[0] FROM ONLY $order LIMIT 1;
-                    RETURN $buyer;
-                    COMMIT TRANSACTION;
-                    ",
-                )
-                .bind(("id", format!("order:{}", order_id)))
-                .await
-                .map_err(|e| Error::new(e.to_string()))?;
-
-            let buyer_id: Option<String> = buyer_id_query.take(0)?;
-
-            let purchase_details = ArtifactsPurchaseDetails {
-                buyer_id: buyer_id.unwrap_or("".to_string()),
-                artifacts,
-            };
-
-            Ok(purchase_details)
+            let artifacts = get_all_artifacts_for_order(db, order_id.as_str()).await?;
+            Ok(artifacts)
         } else {
             Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
         }

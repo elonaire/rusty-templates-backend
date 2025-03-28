@@ -1,8 +1,10 @@
 mod database;
 mod graphql;
+mod grpc;
 mod rest;
+mod utils;
 
-use std::{env, sync::Arc};
+use std::{env, net::SocketAddr, sync::Arc};
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -14,6 +16,9 @@ use axum::{
 };
 
 use graphql::resolvers::query::Query;
+use grpc::server::{
+    orders_service::orders_service_server::OrdersServiceServer, OrdersServiceImplementation,
+};
 use hyper::{
     header::{
         ACCEPT, ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
@@ -23,8 +28,11 @@ use hyper::{
     Method,
 };
 
+use lib::middleware::auth::grpc::AuthMiddleware;
 // use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
+use tonic::transport::Server;
+use tonic_middleware::MiddlewareLayer;
 use tower_http::cors::CorsLayer;
 
 use graphql::resolvers::mutation::Mutation;
@@ -73,6 +81,10 @@ async fn main() -> Result<()> {
     let deployment_env = env::var("ENVIRONMENT").unwrap_or_else(|_| "prod".to_string()); // default to production because it's the most secure
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
         .expect("Missing the ALLOWED_SERVICES environment variable.");
+    let orders_http_port =
+        env::var("ORDERS_HTTP_PORT").expect("Missing the ORDERS_HTTP_PORT environment variable.");
+    let orders_grpc_port =
+        env::var("ORDERS_GRPC_PORT").expect("Missing the ORDERS_GRPC_PORT environment variable.");
 
     let mut schema_builder =
         Schema::build(Query::default(), Mutation::default(), EmptySubscription);
@@ -107,7 +119,7 @@ async fn main() -> Result<()> {
         .route("/", post(graphql_handler))
         // .route("/oauth/callback", get(oauth_handler))
         .layer(Extension(schema))
-        .layer(Extension(db))
+        .layer(Extension(db.clone()))
         .layer(
             CorsLayer::new()
                 .allow_origin(origins)
@@ -128,7 +140,28 @@ async fn main() -> Result<()> {
                 .allow_methods(vec![Method::GET, Method::POST]),
         );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3010").await.unwrap();
+    // Set up the gRPC server
+    let orders_grpc = OrdersServiceImplementation::new(db.clone());
+    let grpc_address: SocketAddr = format!("[::1]:{}", orders_grpc_port)
+        .as_str()
+        .parse()
+        .unwrap();
+    let tonic_auth_middleware = AuthMiddleware::default();
+
+    tokio::spawn(async move {
+        // let the thread panic if gRPC server fails to start
+        Server::builder()
+            .layer(MiddlewareLayer::new(tonic_auth_middleware))
+            .add_service(OrdersServiceServer::new(orders_grpc))
+            .serve(grpc_address)
+            .await
+            .unwrap();
+    });
+
+    // let listener = tokio::net::TcpListener::bind("0.0.0.0:3010").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", orders_http_port))
+        .await
+        .unwrap();
     serve(listener, app).await.unwrap();
 
     Ok(())

@@ -140,6 +140,37 @@ pub enum OrderStatus {
     OnHold,
 }
 
+impl TryFrom<i32> for OrderStatus {
+    type Error = &'static str;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(OrderStatus::Pending),
+            1 => Ok(OrderStatus::Confirmed),
+            2 => Ok(OrderStatus::Ready),
+            3 => Ok(OrderStatus::Completed),
+            4 => Ok(OrderStatus::Failed),
+            5 => Ok(OrderStatus::Refunded),
+            6 => Ok(OrderStatus::OnHold),
+            _ => Err("Invalid status"),
+        }
+    }
+}
+
+impl From<OrderStatus> for i32 {
+    fn from(status: OrderStatus) -> Self {
+        match status {
+            OrderStatus::Pending => 0,
+            OrderStatus::Confirmed => 1,
+            OrderStatus::Ready => 2,
+            OrderStatus::Completed => 3,
+            OrderStatus::Failed => 4,
+            OrderStatus::Refunded => 5,
+            OrderStatus::OnHold => 6,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateOrderVar {
     #[serde(rename = "orderId")]
