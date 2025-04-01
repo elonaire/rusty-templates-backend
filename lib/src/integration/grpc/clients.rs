@@ -20,3 +20,7 @@ pub mod products_service {
 pub mod orders_service {
     tonic::include_proto!("orders");
 }
+
+pub mod payments_service {
+    tonic::include_proto!("payments");
+}

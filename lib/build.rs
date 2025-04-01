@@ -5,12 +5,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let files_proto_path = get_canonical_path_external("files")?;
     let products_proto_path = get_canonical_path("products", "products")?;
     let orders_proto_path = get_canonical_path("orders", "orders")?;
+    let payments_proto_path = get_canonical_path("payments", "payments")?;
 
     tonic_build::compile_protos(acl_proto_path)?;
     tonic_build::compile_protos(email_proto_path)?;
     tonic_build::compile_protos(files_proto_path)?;
     tonic_build::compile_protos(products_proto_path)?;
     tonic_build::compile_protos(orders_proto_path)?;
+    tonic_build::compile_protos(payments_proto_path)?;
 
     Ok(())
 }

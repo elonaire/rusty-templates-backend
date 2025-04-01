@@ -5,7 +5,7 @@ use axum::{
 };
 use hex;
 use hmac::{Hmac, Mac};
-use hyper::header::COOKIE;
+use hyper::header::{AUTHORIZATION, COOKIE};
 use lib::{
     integration::grpc::clients::{
         acl_service::{acl_client::AclClient, Empty},
@@ -19,12 +19,16 @@ use lib::{
             UpdateOrderPayload,
         },
     },
-    utils::models::{Email, EmailUser, OrderStatus},
+    utils::{
+        grpc::{create_grpc_client, AuthMetaData},
+        models::{Email, EmailUser, OrderStatus},
+    },
 };
 use serde_json::Value;
 use sha2::Sha512;
 use std::{env, sync::Arc};
 use surrealdb::{engine::remote::ws::Client, Surreal};
+use tonic::transport::Channel;
 
 // Type alias for HMAC-SHA512
 type HmacSha512 = Hmac<Sha512>;
@@ -64,200 +68,238 @@ pub async fn handle_paystack_webhook(
         // HMAC validation passed
         if let Some(event) = body.get("event").and_then(|e| e.as_str()) {
             if event == "charge.success" {
+                let auth_header = headers.get(AUTHORIZATION);
+                let cookie_header = headers.get(COOKIE);
+
                 if let Some(data) = body.get("data") {
                     if let Some(reference) = data.get("reference").and_then(|r| r.as_str()) {
                         // Internal sign in logic using gRPC
-                        let mut acl_grpc_client =
-                            match AclClient::connect("http://[::1]:50051").await {
-                                Ok(client) => client,
-                                Err(e) => {
-                                    tracing::error!("Failed to connect to ACL service: {}", e);
-                                    return (
-                                        StatusCode::NOT_FOUND,
-                                        format!(
-                                        "Transaction successful but could not reach ACL service."
-                                    ),
-                                    )
-                                        .into_response();
-                                }
-                            };
                         let request = tonic::Request::new(Empty {});
 
-                        if let Ok(auth_res) = acl_grpc_client.sign_in_as_service(request).await {
-                            let mut header_map = HeaderMap::new();
-                            let internal_jwt = auth_res.into_inner().token;
-                            header_map.insert(
-                                "Authorization",
-                                format!("Bearer {:?}", &internal_jwt)
-                                    .as_str()
-                                    .parse()
-                                    .unwrap(),
-                            );
-                            header_map.insert(
-                                COOKIE,
-                                format!("oauth_client=;t={:?}", &internal_jwt)
-                                    .as_str()
-                                    .parse()
-                                    .unwrap(),
-                            );
-
-                            let mut orders_grpc_client = match OrdersServiceClient::connect(
-                                "http://[::1]:50055",
+                        if let Ok(mut acl_grpc_client) = create_grpc_client::<
+                            Empty,
+                            AclClient<Channel>,
+                        >(
+                            "http://[::1]:50051", false, None
+                        )
+                        .await
+                        .map_err(|e| {
+                            tracing::error!("Failed to connect to ACL service: {}", e);
+                            (
+                                StatusCode::NOT_FOUND,
+                                format!("Transaction successful but could not reach ACL service."),
                             )
-                            .await
+                                .into_response()
+                        }) {
+                            if let Ok(auth_res) = acl_grpc_client.sign_in_as_service(request).await
                             {
-                                Ok(client) => client,
-                                Err(e) => {
-                                    tracing::error!("Failed to connect to Orders service: {}", e);
-                                    return (
+                                let mut header_map = HeaderMap::new();
+                                let internal_jwt = auth_res.into_inner().token;
+                                header_map.insert(
+                                    "Authorization",
+                                    format!("Bearer {:?}", &internal_jwt)
+                                        .as_str()
+                                        .parse()
+                                        .unwrap(),
+                                );
+                                header_map.insert(
+                                    COOKIE,
+                                    format!("oauth_client=;t={:?}", &internal_jwt)
+                                        .as_str()
+                                        .parse()
+                                        .unwrap(),
+                                );
+
+                                let mut request = tonic::Request::new(UpdateOrderPayload {
+                                    order_id: reference.to_string(),
+                                    status: OrderStatus::Confirmed.try_into().unwrap(),
+                                });
+
+                                let auth_metadata: AuthMetaData<UpdateOrderPayload> =
+                                    AuthMetaData {
+                                        auth_header,
+                                        cookie_header,
+                                        constructed_grpc_request: Some(&mut request),
+                                    };
+
+                                if let Ok(mut orders_grpc_client) = create_grpc_client::<
+                                    UpdateOrderPayload,
+                                    OrdersServiceClient<Channel>,
+                                >(
+                                    "http://[::1]:50055", true, Some(auth_metadata)
+                                )
+                                .await
+                                .map_err(|e| {
+                                    tracing::error!(
+                                        "Failed to connect to Orders service: {}",
+                                        e
+                                    );
+                                     (
                                             StatusCode::NOT_FOUND,
                                             format!(
                                             "Transaction successful but could not reach Orders service!"
                                         ),
                                         )
-                                            .into_response();
-                                }
-                            };
-
-                            let request = tonic::Request::new(UpdateOrderPayload {
-                                order_id: reference.to_string(),
-                                status: OrderStatus::Confirmed.try_into().unwrap(),
-                            });
-                            // Update order status
-                            if let Err(e) = orders_grpc_client.update_order(request).await {
-                                tracing::error!("Failed to update order: {:?}", e);
-                                return (
-                                    StatusCode::BAD_REQUEST,
-                                    format!(
-                                        "Transaction successful but could not update order status!"
-                                    ),
-                                )
-                                    .into_response();
-                            }
-
-                            // give ownership rights to artifacts
-                            // TODO: Change to gRPC for this. Implement gRPC server & client for orders service
-                            let request = tonic::Request::new(GetAllArtifactsForOrderPayload {
-                                order_id: reference.to_string(),
-                            });
-                            if let Ok(artifacts) = orders_grpc_client
-                                .get_all_artifacts_for_order(request)
-                                .await
-                            {
-                                let mut files_service_grpc_client =
-                                    match FilesServiceClient::connect("http://[::1]:50053").await {
-                                        Ok(client) => client,
-                                        Err(e) => {
-                                            tracing::error!(
-                                                "Failed to connect to Files service: {}",
-                                                e
-                                            );
-
-                                            return (
-                                                StatusCode::NOT_FOUND,
-                                                format!("Transaction successful but could not reach Files service!"),
-                                            )
-                                                .into_response();
-                                        }
-                                    };
-                                let artifacts = artifacts.into_inner();
-
-                                for artifact in artifacts.artifacts.iter() {
-                                    let request = tonic::Request::new(PurchaseFileDetails {
-                                        buyer_id: artifacts.buyer_id.clone(),
-                                        file_id: artifact.clone(),
-                                    });
-
-                                    if let Err(e) =
-                                        files_service_grpc_client.purchase_file(request).await
-                                    {
-                                        tracing::error!("Failed to purchase file: {:?}", e);
-                                    }
-                                }
-                            }
-
-                            // Construct and send confirmation email
-                            let confirmed_mail = if let Some(customer) = data.get("customer") {
-                                if let Some(email) = customer.get("email").and_then(|e| e.as_str())
+                                            .into_response()
+                                })
                                 {
-                                    let email_body = format!(
-                                        r#"
-                                    <div style="font-family: Arial, sans-serif; background-color: #f4f4f4;">
-                                        <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-                                            <h2 style="background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 8px 8px 0 0; text-align: center;">Payment Confirmation</h2>
-                                            <div style="padding: 10px;">
-                                                <p>Dear Customer,</p>
-                                                <p>We are pleased to inform you that we have successfully received your payment.</p>
-                                                <p>Your template is also ready for download. Happy Crabbing 🦀 🚀</p>
-                                                <p>
-                                                    <a href="https://rustytemplates.com/account" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Download Here</a>
-                                                </p>
-                                                <p>If you have any questions or concerns, please do not hesitate to contact our support team.</p>
-                                                <p>Thank you for your purchase!</p>
-                                                <p>Sincerely,<br/>The Rusty Templates Team</p>
+                                    // Update order status
+                                    if let Err(e) = orders_grpc_client.update_order(request).await {
+                                        tracing::error!("Failed to update order: {:?}", e);
+                                        return (
+                                            StatusCode::BAD_REQUEST,
+                                            format!(
+                                                "Transaction successful but could not update order status!"
+                                            ),
+                                        )
+                                            .into_response();
+                                    }
+
+                                    // give ownership rights to artifacts
+                                    // TODO: Change to gRPC for this. Implement gRPC server & client for orders service
+                                    let request = tonic::Request::new(GetAllArtifactsForOrderPayload {
+                                        order_id: reference.to_string(),
+                                    });
+                                    if let Ok(artifacts) = orders_grpc_client
+                                        .get_all_artifacts_for_order(request)
+                                        .await
+                                    {
+                                        let artifacts = artifacts.into_inner();
+
+                                        for artifact in artifacts.artifacts.iter() {
+                                            let mut request =
+                                                tonic::Request::new(PurchaseFileDetails {
+                                                    buyer_id: artifacts.buyer_id.clone(),
+                                                    file_id: artifact.clone(),
+                                                });
+
+                                            let auth_metadata: AuthMetaData<PurchaseFileDetails> =
+                                                AuthMetaData {
+                                                    auth_header,
+                                                    cookie_header,
+                                                    constructed_grpc_request: Some(&mut request),
+                                                };
+
+                                            if let Ok(mut files_service_grpc_client) = create_grpc_client::<
+                                                PurchaseFileDetails,
+                                                FilesServiceClient<Channel>,
+                                            >(
+                                                "http://[::1]:50053", true, Some(auth_metadata)
+                                            )
+                                            .await
+                                            .map_err(|e| {
+                                                tracing::error!("Transaction successful but could not reach Files service: {}", e);
+                                                (
+                                                    StatusCode::NOT_FOUND,
+                                                    format!("Transaction successful but could not reach Files service."),
+                                                )
+                                                    .into_response()
+                                            }) {
+                                                if let Err(e) =
+                                                    files_service_grpc_client.purchase_file(request).await
+                                                {
+                                                    tracing::error!("Failed to purchase file: {:?}", e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                };
+
+                                // Construct and send confirmation email
+                                let confirmed_mail = if let Some(customer) = data.get("customer") {
+                                    if let Some(email) =
+                                        customer.get("email").and_then(|e| e.as_str())
+                                    {
+                                        let email_body = format!(
+                                            r#"
+                                        <div style="font-family: Arial, sans-serif; background-color: #f4f4f4;">
+                                            <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+                                                <h2 style="background-color: #4CAF50; color: #ffffff; padding: 10px; border-radius: 8px 8px 0 0; text-align: center;">Payment Confirmation</h2>
+                                                <div style="padding: 10px;">
+                                                    <p>Dear Customer,</p>
+                                                    <p>We are pleased to inform you that we have successfully received your payment.</p>
+                                                    <p>Your template is also ready for download. Happy Crabbing 🦀 🚀</p>
+                                                    <p>
+                                                        <a href="https://rustytemplates.com/account" style="display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">Download Here</a>
+                                                    </p>
+                                                    <p>If you have any questions or concerns, please do not hesitate to contact our support team.</p>
+                                                    <p>Thank you for your purchase!</p>
+                                                    <p>Sincerely,<br/>The Rusty Templates Team</p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    "#
-                                    );
+                                        "#
+                                        );
 
-                                    Some(Email {
-                                        recipient: EmailUser {
-                                            full_name: None,
-                                            email_address: email.to_string(),
-                                        },
-                                        subject: "Payment Confirmation".to_string(),
-                                        title: "Payment Received! Thanks!".to_string(),
-                                        body: email_body.to_string(),
-                                    })
+                                        Some(Email {
+                                            recipient: EmailUser {
+                                                full_name: None,
+                                                email_address: email.to_string(),
+                                            },
+                                            subject: "Payment Confirmation".to_string(),
+                                            title: "Payment Received! Thanks!".to_string(),
+                                            body: email_body.to_string(),
+                                        })
+                                    } else {
+                                        None
+                                    }
                                 } else {
                                     None
-                                }
-                            } else {
-                                None
-                            };
+                                };
 
-                            if let Some(email) = confirmed_mail {
-                                let mut email_service_grpc_client =
-                                    match EmailServiceClient::connect("http://[::1]:50052").await {
-                                        Ok(client) => client,
-                                        Err(e) => {
-                                            tracing::error!(
-                                                "Failed to connect to Email service: {}",
-                                                e
-                                            );
+                                if let Some(email) = confirmed_mail {
+                                    let mut request = tonic::Request::new(TonicEmail {
+                                        recipient: Some(TonicEmailUser {
+                                            email_address: email.recipient.email_address,
+                                            full_name: match email.recipient.full_name {
+                                                Some(full_name) => full_name,
+                                                None => "".to_string(),
+                                            },
+                                        }),
+                                        subject: email.subject,
+                                        title: email.title,
+                                        body: email.body,
+                                    });
 
-                                            return (
+                                    // let auth_header = headers.get(AUTHORIZATION);
+                                    // let cookie_header = headers.get(COOKIE);
+
+                                    let auth_metadata: AuthMetaData<TonicEmail> = AuthMetaData {
+                                        auth_header,
+                                        cookie_header,
+                                        constructed_grpc_request: Some(&mut request),
+                                    };
+
+                                    if let Ok(mut email_service_grpc_client) =
+                                        create_grpc_client::<TonicEmail, EmailServiceClient<Channel>>(
+                                            "http://[::1]:50053",
+                                            true,
+                                            Some(auth_metadata),
+                                        )
+                                        .await
+                                        .map_err(|e| {
+                                            tracing::error!("Failed to connect to Files service: {}", e);
+                                            (
                                                     StatusCode::NOT_FOUND,
                                                     format!("Transaction successful but could not reach Email service!"),
                                                 )
+                                                    .into_response()
+                                        }) {
+                                            if let Err(e) =
+                                                email_service_grpc_client.send_email(request).await
+                                            {
+                                                eprintln!("Failed to send email: {:?}", e);
+                                                return (
+                                                    StatusCode::BAD_REQUEST,
+                                                    format!(
+                                                        "Transaction successful but could not send email!"
+                                                    ),
+                                                )
                                                     .into_response();
-                                        }
-                                    };
-
-                                let request = tonic::Request::new(TonicEmail {
-                                    recipient: Some(TonicEmailUser {
-                                        email_address: email.recipient.email_address,
-                                        full_name: match email.recipient.full_name {
-                                            Some(full_name) => full_name,
-                                            None => "".to_string(),
-                                        },
-                                    }),
-                                    subject: email.subject,
-                                    title: email.title,
-                                    body: email.body,
-                                });
-
-                                if let Err(e) = email_service_grpc_client.send_email(request).await
-                                {
-                                    eprintln!("Failed to send email: {:?}", e);
-                                    return (
-                                        StatusCode::BAD_REQUEST,
-                                        format!("Transaction successful but could not send email!"),
-                                    )
-                                        .into_response();
+                                            }
+                                        };
                                 }
-                            }
+                            };
                         };
                     }
                 }

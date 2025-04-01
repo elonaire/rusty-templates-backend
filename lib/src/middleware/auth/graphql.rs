@@ -1,6 +1,9 @@
 use crate::{
     integration::grpc::clients::acl_service::{acl_client::AclClient, Empty},
-    utils::models::AuthStatus,
+    utils::{
+        grpc::{create_grpc_client, AuthMetaData},
+        models::AuthStatus,
+    },
 };
 
 use hyper::{
@@ -8,48 +11,32 @@ use hyper::{
     HeaderMap,
 };
 use std::io::{Error, ErrorKind};
-use tonic::metadata::MetadataValue;
+use tonic::transport::Channel;
 
 /// False middleware for checking authentication from ACL service for GraphQL requests.
 /// I used this anti-pattern because the middleware in async-graphql just doesn't work. The headers are not properly parsed.
 pub async fn check_auth_from_acl(headers: &HeaderMap) -> Result<AuthStatus, Error> {
-    let mut acl_grpc_client = AclClient::connect("http://[::1]:50051")
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to connect to ACL service: {}", e);
-            Error::new(ErrorKind::Other, "Failed to connect to ACL service")
-        })?;
-
-    let mut request = tonic::Request::new(Empty {});
-
     let auth_header = headers.get(AUTHORIZATION);
     let cookie_header = headers.get(COOKIE);
 
-    if auth_header.is_some() {
-        let token: MetadataValue<_> = auth_header
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .parse()
-            .map_err(|_e| Error::new(ErrorKind::PermissionDenied, "Unauthorized"))?;
+    let mut request = tonic::Request::new(Empty {});
 
-        request.metadata_mut().insert("authorization", token);
-    } else {
-        return Err(Error::new(ErrorKind::PermissionDenied, "Unauthorized"));
+    let auth_metadata: AuthMetaData<Empty> = AuthMetaData {
+        auth_header,
+        cookie_header,
+        constructed_grpc_request: Some(&mut request),
     };
 
-    if cookie_header.is_some() {
-        let cookie: MetadataValue<_> = cookie_header
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .parse()
-            .map_err(|_e| Error::new(ErrorKind::PermissionDenied, "Unauthorized"))?;
-
-        request.metadata_mut().insert("cookie", cookie);
-    } else {
-        return Err(Error::new(ErrorKind::PermissionDenied, "Unauthorized"));
-    };
+    let mut acl_grpc_client = create_grpc_client::<Empty, AclClient<Channel>>(
+        "http://[::1]:50051",
+        true,
+        Some(auth_metadata),
+    )
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to connect to ACL service: {}", e);
+        Error::new(ErrorKind::Other, "Failed to connect to ACL service")
+    })?;
 
     let response = acl_grpc_client.check_auth(request).await;
 

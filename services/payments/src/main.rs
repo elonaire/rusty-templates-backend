@@ -1,8 +1,10 @@
 mod database;
 mod graphql;
+mod grpc;
 mod rest;
+mod utils;
 
-use std::{env, sync::Arc};
+use std::{env, net::SocketAddr, sync::Arc};
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -23,10 +25,16 @@ use hyper::{
     Method,
 };
 
+use grpc::server::{
+    payments_service::payments_service_server::PaymentsServiceServer, PaymentsServiceImplementation,
+};
+use lib::middleware::auth::grpc::AuthMiddleware;
 use rest::handlers::handle_paystack_webhook;
 // use serde::Deserialize;
 use dotenvy::dotenv;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
+use tonic::transport::Server;
+use tonic_middleware::MiddlewareLayer;
 use tower_http::cors::CorsLayer;
 
 use graphql::resolvers::mutation::Mutation;
@@ -75,6 +83,10 @@ async fn main() -> Result<()> {
     let deployment_env = env::var("ENVIRONMENT").unwrap_or_else(|_| "prod".to_string()); // default to production because it's the most secure
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
         .expect("Missing the ALLOWED_SERVICES environment variable.");
+    let payments_http_port = env::var("PRODUCTS_HTTP_PORT")
+        .expect("Missing the PRODUCTS_HTTP_PORT environment variable.");
+    let payments_grpc_port = env::var("PRODUCTS_GRPC_PORT")
+        .expect("Missing the PRODUCTS_GRPC_PORT environment variable.");
 
     let mut schema_builder =
         Schema::build(Query::default(), Mutation::default(), EmptySubscription);
@@ -109,7 +121,7 @@ async fn main() -> Result<()> {
         .route("/", post(graphql_handler))
         .route("/paystack/webhook", post(handle_paystack_webhook))
         .layer(Extension(schema))
-        .layer(Extension(db))
+        .layer(Extension(db.clone()))
         .layer(
             CorsLayer::new()
                 .allow_origin(origins)
@@ -130,7 +142,27 @@ async fn main() -> Result<()> {
                 .allow_methods(vec![Method::GET, Method::POST]),
         );
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3013").await.unwrap();
+    // Set up the gRPC server
+    let payments_grpc = PaymentsServiceImplementation::new(db.clone());
+    let grpc_address: SocketAddr = format!("[::1]:{}", payments_grpc_port)
+        .as_str()
+        .parse()
+        .unwrap();
+    let tonic_auth_middleware = AuthMiddleware::default();
+
+    tokio::spawn(async move {
+        // let the thread panic if gRPC server fails to start
+        Server::builder()
+            .layer(MiddlewareLayer::new(tonic_auth_middleware))
+            .add_service(PaymentsServiceServer::new(payments_grpc))
+            .serve(grpc_address)
+            .await
+            .unwrap();
+    });
+
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", payments_http_port))
+        .await
+        .unwrap();
     serve(listener, app).await.unwrap();
 
     Ok(())

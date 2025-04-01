@@ -9,19 +9,27 @@ use crate::{
 };
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
+use hyper::header::{AUTHORIZATION, COOKIE};
 use lib::{
     integration::{
         foreign_key::add_foreign_key_if_not_exists,
-        grpc::clients::acl_service::{acl_client::AclClient, GetUserEmailRequest},
-        payments::initiate_payment_integration,
+        grpc::clients::{
+            acl_service::{acl_client::AclClient, GetUserEmailRequest},
+            payments_service::{
+                payments_service_client::PaymentsServiceClient, UserPaymentDetails,
+            },
+        },
+        // payments::initiate_payment_integration,
     },
     middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
-        models::{ForeignKey, OrderStatus, User, UserPaymentDetails},
+        grpc::{create_grpc_client, AuthMetaData},
+        models::{ForeignKey, OrderStatus, User},
     },
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
+use tonic::transport::Channel;
 
 #[derive(Default)]
 pub struct OrderMutation;
@@ -53,8 +61,6 @@ impl OrderMutation {
                 .map(|t| &t.id)
                 .expect("id")
                 .to_raw();
-
-            println!("buyer_result: {:?}", buyer_result);
 
             let _claimed_cart = claim_cart(db, &internal_user_id, &session_id).await?;
 
@@ -95,15 +101,36 @@ impl OrderMutation {
 
                     let new_order: Vec<Order> = create_order_transaction.take(0)?;
 
-                    let acl_grpc_client =
-                        AclClient::connect("http://[::1]:50051").await.map_err(|e| {
-                            tracing::error!("Failed to connect to ACL service: {}", e);
-                        });
-                    let request = tonic::Request::new(GetUserEmailRequest {
+                    let auth_header = headers.get(AUTHORIZATION);
+                    let cookie_header = headers.get(COOKIE);
+
+                    let mut request = tonic::Request::new(GetUserEmailRequest {
                         user_id: buyer_result.unwrap().user_id.clone(),
                     });
 
-                    let get_user_email_res = acl_grpc_client.unwrap().get_user_email(request).await;
+                    let auth_metadata: AuthMetaData<GetUserEmailRequest> = AuthMetaData {
+                        auth_header,
+                        cookie_header,
+                        constructed_grpc_request: Some(&mut request),
+                    };
+
+                    let mut acl_grpc_client = create_grpc_client::<
+                        GetUserEmailRequest,
+                        AclClient<Channel>,
+                    >(
+                        "http://[::1]:50051", true, Some(auth_metadata)
+                    )
+                    .await
+                    .map_err(|e| {
+                        tracing::error!("Failed to connect to ACL service: {}", e);
+                        ExtendedError::new(
+                            "Failed to connect to ACL service",
+                            Some(500.to_string()),
+                        )
+                        .build()
+                    })?;
+
+                    let get_user_email_res = acl_grpc_client.get_user_email(request).await;
 
                     match get_user_email_res {
                         Ok(email) => {
@@ -116,12 +143,32 @@ impl OrderMutation {
                                     .map(|t| &t.id)
                                     .expect("id")
                                     .to_raw(),
-                                // metadata: Some(PaymentDetailsMetaData {
-                                //     cart_id: Some(cart_id),
-                                // }),
                             };
-                            match initiate_payment_integration(ctx, payment_info).await {
-                                Ok(payment_link) => Ok(payment_link),
+
+                            let mut payments_grpc_client =
+                                match PaymentsServiceClient::connect("http://[::1]:50051").await {
+                                    Ok(client) => client,
+                                    Err(e) => {
+                                        tracing::error!(
+                                            "Error connecting to payments service: {}",
+                                            e
+                                        );
+                                        return Err(ExtendedError::new(
+                                            format!(
+                                                "Error connecting to payments service! {:?}",
+                                                e
+                                            ),
+                                            Some(500.to_string()),
+                                        )
+                                        .build());
+                                    }
+                                };
+                            let request = tonic::Request::new(payment_info);
+                            match payments_grpc_client
+                                .initiate_payment_integration(request)
+                                .await
+                            {
+                                Ok(payment_link) => Ok(payment_link.into_inner().authorization_url),
                                 Err(e) => Err(ExtendedError::new(
                                     format!("Error getting payment link! {:?}", e),
                                     Some(400.to_string()),
