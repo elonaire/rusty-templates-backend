@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::graphql::schemas::general::{Cart, CartOperation};
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
-use hyper::header::SET_COOKIE;
+use hyper::header::{AUTHORIZATION, COOKIE, SET_COOKIE};
 use lib::{
     integration::{
         foreign_key::add_foreign_key_if_not_exists,
@@ -15,10 +15,12 @@ use lib::{
     middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
+        grpc::{create_grpc_client, AuthMetaData},
         models::{ForeignKey, License, Product, User},
     },
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
+use tonic::transport::Channel;
 use uuid::Uuid;
 
 struct UpdateCartArgs {
@@ -100,16 +102,35 @@ impl CartMutation {
                 .expect("id")
                 .to_raw();
 
-            let mut products_grpc_client = ProductsServiceClient::connect("http://[::1]:50054")
-                .await
-                .map_err(|e| {
-                    tracing::error!("Failed to connect to Products service: {}", e);
-                })
-                .unwrap();
+            let auth_header = headers.get(AUTHORIZATION);
+            let cookie_header = headers.get(COOKIE);
 
-            let get_product_price_request = tonic::Request::new(ProductId {
+            let mut get_product_price_request = tonic::Request::new(ProductId {
                 product_id: external_product_id.clone(),
             });
+
+            let auth_metadata: AuthMetaData<ProductId> = AuthMetaData {
+                auth_header,
+                cookie_header,
+                constructed_grpc_request: Some(&mut get_product_price_request),
+            };
+
+            let mut products_grpc_client = create_grpc_client::<
+                ProductId,
+                ProductsServiceClient<Channel>,
+            >(
+                "http://[::1]:50054", true, Some(auth_metadata)
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to connect to Products service: {}", e);
+                ExtendedError::new(
+                    "Failed to connect to Products service",
+                    Some(400.to_string()),
+                )
+                .build()
+            })?;
+
             let product_price = products_grpc_client
                 .get_product_price(get_product_price_request)
                 .await?

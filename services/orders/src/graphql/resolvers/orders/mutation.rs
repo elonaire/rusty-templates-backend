@@ -145,25 +145,31 @@ impl OrderMutation {
                                     .to_raw(),
                             };
 
+                            let mut request = tonic::Request::new(payment_info);
+
+                            let auth_metadata: AuthMetaData<UserPaymentDetails> = AuthMetaData {
+                                auth_header,
+                                cookie_header,
+                                constructed_grpc_request: Some(&mut request),
+                            };
+
                             let mut payments_grpc_client =
-                                match PaymentsServiceClient::connect("http://[::1]:50051").await {
-                                    Ok(client) => client,
-                                    Err(e) => {
-                                        tracing::error!(
-                                            "Error connecting to payments service: {}",
-                                            e
-                                        );
-                                        return Err(ExtendedError::new(
-                                            format!(
-                                                "Error connecting to payments service! {:?}",
-                                                e
-                                            ),
-                                            Some(500.to_string()),
-                                        )
-                                        .build());
-                                    }
-                                };
-                            let request = tonic::Request::new(payment_info);
+                                create_grpc_client::<
+                                    UserPaymentDetails,
+                                    PaymentsServiceClient<Channel>,
+                                >(
+                                    "http://[::1]:50056", true, Some(auth_metadata)
+                                )
+                                .await
+                                .map_err(|e| {
+                                    tracing::error!("Failed to connect to Payments service: {}", e);
+                                    ExtendedError::new(
+                                        "Failed to connect to Payments service",
+                                        Some(400.to_string()),
+                                    )
+                                    .build()
+                                })?;
+
                             match payments_grpc_client
                                 .initiate_payment_integration(request)
                                 .await
