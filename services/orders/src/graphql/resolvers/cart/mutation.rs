@@ -137,10 +137,34 @@ impl CartMutation {
                 .into_inner()
                 .price;
 
-            let get_product_artifact_request = tonic::Request::new(RetrieveProductArtifactArgs {
-                product_id: external_product_id.clone(),
-                license_id: external_license_id.clone(),
-            });
+            let mut get_product_artifact_request =
+                tonic::Request::new(RetrieveProductArtifactArgs {
+                    product_id: external_product_id.clone(),
+                    license_id: external_license_id.clone(),
+                });
+
+            let auth_metadata: AuthMetaData<RetrieveProductArtifactArgs> = AuthMetaData {
+                auth_header,
+                cookie_header,
+                constructed_grpc_request: Some(&mut get_product_artifact_request),
+            };
+
+            let mut products_grpc_client = create_grpc_client::<
+                RetrieveProductArtifactArgs,
+                ProductsServiceClient<Channel>,
+            >(
+                "http://[::1]:50054", true, Some(auth_metadata)
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to connect to Products service: {}", e);
+                ExtendedError::new(
+                    "Failed to connect to Products service",
+                    Some(400.to_string()),
+                )
+                .build()
+            })?;
+
             let product_artifact = products_grpc_client
                 .get_product_artifact(get_product_artifact_request)
                 .await?
@@ -149,9 +173,33 @@ impl CartMutation {
 
             tracing::debug!("product_artifact: {:?}", product_artifact);
 
-            let get_license_price_factor_request = tonic::Request::new(GetLicensePriceFactorArgs {
-                license_id: external_license_id.clone(),
-            });
+            let mut get_license_price_factor_request =
+                tonic::Request::new(GetLicensePriceFactorArgs {
+                    license_id: external_license_id.clone(),
+                });
+
+            let auth_metadata: AuthMetaData<GetLicensePriceFactorArgs> = AuthMetaData {
+                auth_header,
+                cookie_header,
+                constructed_grpc_request: Some(&mut get_license_price_factor_request),
+            };
+
+            let mut products_grpc_client = create_grpc_client::<
+                GetLicensePriceFactorArgs,
+                ProductsServiceClient<Channel>,
+            >(
+                "http://[::1]:50054", true, Some(auth_metadata)
+            )
+            .await
+            .map_err(|e| {
+                tracing::error!("Failed to connect to Products service: {}", e);
+                ExtendedError::new(
+                    "Failed to connect to Products service",
+                    Some(400.to_string()),
+                )
+                .build()
+            })?;
+
             let license_price_factor = products_grpc_client
                 .get_license_price_factor(get_license_price_factor_request)
                 .await?

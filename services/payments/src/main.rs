@@ -83,10 +83,10 @@ async fn main() -> Result<()> {
     let deployment_env = env::var("ENVIRONMENT").unwrap_or_else(|_| "prod".to_string()); // default to production because it's the most secure
     let allowed_services_cors = env::var("ALLOWED_SERVICES_CORS")
         .expect("Missing the ALLOWED_SERVICES environment variable.");
-    let payments_http_port = env::var("PRODUCTS_HTTP_PORT")
-        .expect("Missing the PRODUCTS_HTTP_PORT environment variable.");
-    let payments_grpc_port = env::var("PRODUCTS_GRPC_PORT")
-        .expect("Missing the PRODUCTS_GRPC_PORT environment variable.");
+    let payments_http_port = env::var("PAYMENTS_HTTP_PORT")
+        .expect("Missing the PAYMENTS_HTTP_PORT environment variable.");
+    let payments_grpc_port = env::var("PAYMENTS_GRPC_PORT")
+        .expect("Missing the PAYMENTS_GRPC_PORT environment variable.");
 
     let mut schema_builder =
         Schema::build(Query::default(), Mutation::default(), EmptySubscription);

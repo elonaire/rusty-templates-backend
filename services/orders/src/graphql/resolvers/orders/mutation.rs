@@ -207,10 +207,9 @@ impl OrderMutation {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
-            let auth_status = check_auth_from_acl(headers).await?;
+            let _auth_status = check_auth_from_acl(headers).await?;
 
-            let updated_order =
-                update_order(db, auth_status.sub.as_str(), order_id.as_str(), status).await?;
+            let updated_order = update_order(db, order_id.as_str(), status).await?;
             Ok(updated_order)
         } else {
             Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())

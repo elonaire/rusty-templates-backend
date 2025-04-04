@@ -37,16 +37,14 @@ impl OrdersService for OrdersServiceImplementation {
             .try_into()
             .map_err(|_| Status::invalid_argument("Invalid status"))?;
 
-        match utils::orders::update_order(
-            &self.db,
-            current_user.to_owned().as_str(),
-            payload.order_id.as_str(),
-            status,
-        )
-        .await
-        {
+        tracing::debug!("status: {:?}", status);
+
+        match utils::orders::update_order(&self.db, payload.order_id.as_str(), status).await {
             Ok(status_str) => Ok(Response::new(UpdateOrderResponse { status_str })),
-            Err(_e) => Err(Status::internal("Failed")),
+            Err(e) => {
+                tracing::error!("Error updating order: {:?}", e);
+                Err(Status::internal("Failed"))
+            }
         }
     }
 
@@ -64,7 +62,10 @@ impl OrdersService for OrdersServiceImplementation {
                 buyer_id: artifacts.buyer_id,
                 artifacts: artifacts.artifacts,
             })),
-            Err(_e) => Err(Status::internal("Failed")),
+            Err(e) => {
+                tracing::error!("Error getting order artifacts: {:?}", e);
+                Err(Status::internal("Failed"))
+            }
         }
     }
 }

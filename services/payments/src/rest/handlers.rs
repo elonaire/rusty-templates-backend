@@ -64,13 +64,15 @@ pub async fn handle_paystack_webhook(
         _ => true,
     };
 
+    tracing::debug!(
+        "paystack_signature_is_valid: {:?}",
+        paystack_signature_is_valid
+    );
+
     if paystack_signature_is_valid {
         // HMAC validation passed
         if let Some(event) = body.get("event").and_then(|e| e.as_str()) {
             if event == "charge.success" {
-                let auth_header = headers.get(AUTHORIZATION);
-                let cookie_header = headers.get(COOKIE);
-
                 if let Some(data) = body.get("data") {
                     if let Some(reference) = data.get("reference").and_then(|r| r.as_str()) {
                         // Internal sign in logic using gRPC
@@ -96,19 +98,24 @@ pub async fn handle_paystack_webhook(
                                 let mut header_map = HeaderMap::new();
                                 let internal_jwt = auth_res.into_inner().token;
                                 header_map.insert(
-                                    "Authorization",
-                                    format!("Bearer {:?}", &internal_jwt)
+                                    AUTHORIZATION,
+                                    format!("Bearer {}", &internal_jwt)
                                         .as_str()
                                         .parse()
                                         .unwrap(),
                                 );
                                 header_map.insert(
                                     COOKIE,
-                                    format!("oauth_client=;t={:?}", &internal_jwt)
+                                    format!("oauth_client=;t={}", &internal_jwt)
                                         .as_str()
                                         .parse()
                                         .unwrap(),
                                 );
+
+                                let auth_header = header_map.get(AUTHORIZATION);
+                                let cookie_header = header_map.get(COOKIE);
+
+                                tracing::debug!("auth_header: {:?}", auth_header);
 
                                 let mut request = tonic::Request::new(UpdateOrderPayload {
                                     order_id: reference.to_string(),
@@ -155,51 +162,85 @@ pub async fn handle_paystack_webhook(
                                             .into_response();
                                     }
 
-                                    // give ownership rights to artifacts
-                                    // TODO: Change to gRPC for this. Implement gRPC server & client for orders service
-                                    let request = tonic::Request::new(GetAllArtifactsForOrderPayload {
+                                    tracing::debug!("rest webhook: updated order!");
+
+                                    let mut request = tonic::Request::new(GetAllArtifactsForOrderPayload {
                                         order_id: reference.to_string(),
                                     });
-                                    if let Ok(artifacts) = orders_grpc_client
-                                        .get_all_artifacts_for_order(request)
-                                        .await
-                                    {
-                                        let artifacts = artifacts.into_inner();
 
-                                        for artifact in artifacts.artifacts.iter() {
-                                            let mut request =
-                                                tonic::Request::new(PurchaseFileDetails {
-                                                    buyer_id: artifacts.buyer_id.clone(),
-                                                    file_id: artifact.clone(),
-                                                });
+                                    let auth_metadata: AuthMetaData<GetAllArtifactsForOrderPayload> =
+                                        AuthMetaData {
+                                            auth_header,
+                                            cookie_header,
+                                            constructed_grpc_request: Some(&mut request),
+                                        };
 
-                                            let auth_metadata: AuthMetaData<PurchaseFileDetails> =
-                                                AuthMetaData {
-                                                    auth_header,
-                                                    cookie_header,
-                                                    constructed_grpc_request: Some(&mut request),
-                                                };
-
-                                            if let Ok(mut files_service_grpc_client) = create_grpc_client::<
-                                                PurchaseFileDetails,
-                                                FilesServiceClient<Channel>,
-                                            >(
-                                                "http://[::1]:50053", true, Some(auth_metadata)
+                                    // give ownership rights to artifacts
+                                    if let Ok(mut orders_grpc_client) = create_grpc_client::<
+                                        GetAllArtifactsForOrderPayload,
+                                        OrdersServiceClient<Channel>,
+                                    >(
+                                        "http://[::1]:50055", true, Some(auth_metadata)
+                                    )
+                                    .await
+                                    .map_err(|e| {
+                                        tracing::error!(
+                                            "Failed to connect to Orders service: {}",
+                                            e
+                                        );
+                                         (
+                                                StatusCode::NOT_FOUND,
+                                                format!(
+                                                "Transaction successful but could not reach Orders service!"
+                                            ),
                                             )
+                                                .into_response()
+                                    })
+                                    {
+                                        if let Ok(artifacts) = orders_grpc_client
+                                            .get_all_artifacts_for_order(request)
                                             .await
-                                            .map_err(|e| {
-                                                tracing::error!("Transaction successful but could not reach Files service: {}", e);
-                                                (
-                                                    StatusCode::NOT_FOUND,
-                                                    format!("Transaction successful but could not reach Files service."),
+                                        {
+                                            let artifacts = artifacts.into_inner();
+
+                                            for artifact in artifacts.artifacts.iter() {
+                                                tracing::debug!("Found buyer_id: {:?}", artifacts.buyer_id);
+                                                let mut request =
+                                                    tonic::Request::new(PurchaseFileDetails {
+                                                        buyer_id: artifacts.buyer_id.clone(),
+                                                        file_id: artifact.clone(),
+                                                    });
+
+                                                let auth_metadata: AuthMetaData<PurchaseFileDetails> =
+                                                    AuthMetaData {
+                                                        auth_header,
+                                                        cookie_header,
+                                                        constructed_grpc_request: Some(&mut request),
+                                                    };
+
+                                                if let Ok(mut files_service_grpc_client) = create_grpc_client::<
+                                                    PurchaseFileDetails,
+                                                    FilesServiceClient<Channel>,
+                                                >(
+                                                    "http://[::1]:50053", true, Some(auth_metadata)
                                                 )
-                                                    .into_response()
-                                            }) {
-                                                if let Err(e) =
-                                                    files_service_grpc_client.purchase_file(request).await
-                                                {
-                                                    tracing::error!("Failed to purchase file: {:?}", e);
+                                                .await
+                                                .map_err(|e| {
+                                                    tracing::error!("Transaction successful but could not reach Files service: {}", e);
+                                                    (
+                                                        StatusCode::NOT_FOUND,
+                                                        format!("Transaction successful but could not reach Files service."),
+                                                    )
+                                                        .into_response()
+                                                }) {
+                                                    if let Err(e) =
+                                                        files_service_grpc_client.purchase_file(request).await
+                                                    {
+                                                        tracing::error!("Failed to purchase file: {:?}", e);
+                                                    }
                                                 }
+
+                                                tracing::debug!("rest webhook: purchased artifacts!");
                                             }
                                         }
                                     }
@@ -272,7 +313,7 @@ pub async fn handle_paystack_webhook(
 
                                     if let Ok(mut email_service_grpc_client) =
                                         create_grpc_client::<TonicEmail, EmailServiceClient<Channel>>(
-                                            "http://[::1]:50053",
+                                            "http://[::1]:50052",
                                             true,
                                             Some(auth_metadata),
                                         )
@@ -298,6 +339,8 @@ pub async fn handle_paystack_webhook(
                                                     .into_response();
                                             }
                                         };
+
+                                    tracing::debug!("rest webhook: sent email!");
                                 }
                             };
                         };
