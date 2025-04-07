@@ -38,6 +38,9 @@ DEFINE FIELD ui_framework ON TABLE product TYPE option<string>
 DEFINE FIELD use_case on TABLE product TYPE string
     -- Allow only these values in the array
     ASSERT $value INSIDE ["Dashboard", "Ecommerce", "Admin", "EcommerceAdmin", "FinanceAdmin", "IoTAdmin"];
+DEFINE FIELD created_at ON TABLE product DEFAULT time::now() READONLY;
+DEFINE FIELD updated_at ON TABLE product TYPE datetime
+    VALUE time::now();
 
 
 -- A schema-full license table
@@ -52,6 +55,9 @@ DEFINE INDEX licenseIndex ON TABLE license COLUMNS name UNIQUE;
 CREATE license SET name = "Rusty", price_factor = 1, short_description = "Rusty (1 project sold to 1 client)";
 CREATE license SET name = "Rustier", price_factor = 2, short_description = "Rustier (1 project sold to 1 client, DevOps, unlimited personal)";
 CREATE license SET name = "Rustiest", price_factor = 9, short_description = "Rustiest (unlimited projects, DevOps, SaaS)";
+DEFINE FIELD created_at ON TABLE license DEFAULT time::now() READONLY;
+DEFINE FIELD updated_at ON TABLE license TYPE datetime
+    VALUE time::now();
 
 -- Relationship between product, license and file(artifact)
 DEFINE TABLE product_license_artifact SCHEMAFULL TYPE RELATION IN product OUT file_id;

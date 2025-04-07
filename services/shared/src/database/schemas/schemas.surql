@@ -39,7 +39,7 @@ DEFINE FIELD type ON TABLE reaction TYPE string
 -- Allow only these values in the array
   ASSERT $value INSIDE ["Like", "Dislike", "Love", "Haha", "Wow", "Sad", "Angry"];
 DEFINE FIELD created_at ON TABLE reaction TYPE datetime
-  DEFAULT time::now();
+  DEFAULT time::now() READONLY;
 DEFINE INDEX reactionIndex ON TABLE reaction
   COLUMNS in, out UNIQUE;
 DEFINE INDEX userReactionIndex ON TABLE reaction
@@ -53,7 +53,7 @@ DEFINE TABLE rating SCHEMAFULL TYPE RELATION IN user_id OUT product_id;
 DEFINE FIELD rating_value ON TABLE rating TYPE int
   ASSERT $value >= 1 AND $value <= 5; -- Assuming rating values between 1 and 5
 DEFINE FIELD created_at ON TABLE rating TYPE datetime
-  DEFAULT time::now();
+  DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON TABLE rating TYPE datetime
   VALUE time::now();
 DEFINE FIELD in ON TABLE rating TYPE record<user_id>;
