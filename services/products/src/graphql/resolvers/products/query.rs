@@ -15,7 +15,7 @@ pub struct ProductQuery;
 
 #[Object]
 impl ProductQuery {
-    async fn get_product_price(&self, ctx: &Context<'_>, product_id: String) -> Result<u64> {
+    async fn fetch_product_price(&self, ctx: &Context<'_>, product_id: String) -> Result<u64> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         let response = get_product_price(db, product_id.as_str()).await?;
@@ -23,7 +23,7 @@ impl ProductQuery {
         Ok(response)
     }
 
-    async fn get_products(&self, ctx: &Context<'_>) -> Result<Vec<Product>> {
+    async fn fetch_products(&self, ctx: &Context<'_>) -> Result<Vec<Product>> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         let products: Vec<Product> = db
@@ -34,7 +34,7 @@ impl ProductQuery {
         Ok(products)
     }
 
-    async fn get_products_by_ids(
+    async fn fetch_products_by_ids(
         &self,
         ctx: &Context<'_>,
         product_ids: Vec<String>,
@@ -92,7 +92,7 @@ impl ProductQuery {
         Ok(products)
     }
 
-    async fn get_product_by_slug(&self, ctx: &Context<'_>, slug: String) -> Result<Product> {
+    async fn fetch_product_by_slug(&self, ctx: &Context<'_>, slug: String) -> Result<Product> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         let mut query_response = db
@@ -113,7 +113,7 @@ impl ProductQuery {
         }
     }
 
-    pub async fn get_product_sku_artifact(
+    pub async fn fetch_product_sku_artifact(
         &self,
         ctx: &Context<'_>,
         product_id: String,
@@ -127,7 +127,7 @@ impl ProductQuery {
         Ok(response)
     }
 
-    pub async fn get_license_price_factor(
+    pub async fn fetch_license_price_factor(
         &self,
         ctx: &Context<'_>,
         license_id: String,
@@ -139,7 +139,7 @@ impl ProductQuery {
         Ok(response)
     }
 
-    async fn get_licenses(&self, ctx: &Context<'_>) -> Result<Vec<License>> {
+    async fn fetch_licenses(&self, ctx: &Context<'_>) -> Result<Vec<License>> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         let mut external_product_ids_query = db
