@@ -23,13 +23,13 @@ pub async fn get_product_price<T: Clone + AsSurrealClient>(
     }
 }
 
-/// Utility function to get the artifact of a product by its product ID and license ID.
-pub async fn get_product_artifact<T: Clone + AsSurrealClient>(
+/// Utility function to get the artifact of a product sku by its product ID and license ID.
+pub async fn get_product_sku_artifact<T: Clone + AsSurrealClient>(
     db: &T,
     product_id: &str,
     license_id: &str,
 ) -> Result<String, Error> {
-    let mut product_artifact_query = db
+    let mut product_sku_artifact_query = db
         .as_client()
         .query(
             "
@@ -37,8 +37,8 @@ pub async fn get_product_artifact<T: Clone + AsSurrealClient>(
             LET $product = type::thing($product_id);
             LET $license = type::thing($license_id);
 
-            LET $file = SELECT * FROM ONLY file_id WHERE (<-(product_license_artifact WHERE license = $license)) LIMIT 1;
-            RETURN $file;
+            LET $file = SELECT ->(product_sku WHERE license = $license).artifact[*][0] AS artifact FROM ONLY $product;
+            RETURN $file.artifact;
             COMMIT TRANSACTION;
             "
         )
@@ -50,7 +50,7 @@ pub async fn get_product_artifact<T: Clone + AsSurrealClient>(
             Error::new(ErrorKind::Other, "DB Query Failed")
         })?;
 
-    let response: Option<UploadedFile> = product_artifact_query.take(0).map_err(|e| {
+    let response: Option<UploadedFile> = product_sku_artifact_query.take(0).map_err(|e| {
         tracing::error!("Deserialization Failed: {}", e);
         Error::new(ErrorKind::Other, "Deserialization Failed")
     })?;

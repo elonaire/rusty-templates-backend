@@ -7,7 +7,7 @@ use surrealdb::{engine::remote::ws::Client, Surreal};
 
 use crate::{
     graphql::schemas::general::{License, Product},
-    utils::products::{get_license_price_factor, get_product_artifact, get_product_price},
+    utils::products::{get_license_price_factor, get_product_price, get_product_sku_artifact},
 };
 
 #[derive(Default)]
@@ -113,7 +113,7 @@ impl ProductQuery {
         }
     }
 
-    pub async fn get_product_artifact(
+    pub async fn get_product_sku_artifact(
         &self,
         ctx: &Context<'_>,
         product_id: String,
@@ -121,7 +121,8 @@ impl ProductQuery {
     ) -> Result<String> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
-        let response = get_product_artifact(db, product_id.as_str(), license_id.as_str()).await?;
+        let response =
+            get_product_sku_artifact(db, product_id.as_str(), license_id.as_str()).await?;
 
         Ok(response)
     }

@@ -44,7 +44,7 @@ impl ProductsService for ProductsServiceImplementation {
     ) -> Result<Response<ProductArtifact>, Status> {
         let args = request.into_inner(); // Move once and store the result
 
-        match utils::products::get_product_artifact(
+        match utils::products::get_product_sku_artifact(
             &self.db,
             args.product_id.as_str(),
             args.license_id.as_str(),
