@@ -16,19 +16,15 @@ DEFINE INDEX fileIndex ON TABLE file_id COLUMNS file_id UNIQUE;
 -- A schema-full product table
 DEFINE TABLE product SCHEMAFULL;
 DEFINE FIELD name ON TABLE product TYPE string;
-DEFINE FIELD slug ON TABLE product VALUE string::slug(name);
--- DEFINE EVENT product_created ON TABLE product WHEN $event = "CREATE" THEN (
---     -- create slug
---     $this.slug = string::slug($after.name)
--- );
+DEFINE FIELD slug ON TABLE product TYPE string VALUE string::slug(name);
 DEFINE FIELD price ON TABLE product TYPE int;
 DEFINE FIELD preview_link ON TABLE product TYPE string;
 DEFINE FIELD details_file ON TABLE product TYPE string;
 DEFINE FIELD screenshot ON TABLE product TYPE string;
-DEFINE FIELD owner ON TABLE product TYPE record<user_id>;
+DEFINE FIELD owner ON TABLE product TYPE record<user_id> VALUE type::thing("user_id", $value);
 DEFINE FIELD framework ON TABLE product TYPE string
     -- Allow only these values in the array
-  ASSERT $value INSIDE ["Yew", "Dioxus", "Axum", "Rocket", "Iced", "Tauri", "Actix", "Warp", "Rouille", "Thruster"];
+  ASSERT $value INSIDE ["Yew", "Dioxus", "Leptos", "Axum", "Rocket", "Iced", "Tauri", "Actix", "Warp", "Rouille", "Thruster"];
 DEFINE FIELD application_layer ON TABLE product TYPE string
     -- Allow only these values in the array
   ASSERT $value INSIDE ["Frontend", "Backend"];
@@ -38,7 +34,7 @@ DEFINE FIELD ui_framework ON TABLE product TYPE option<string>
 DEFINE FIELD use_case on TABLE product TYPE string
     -- Allow only these values in the array
     ASSERT $value INSIDE ["Dashboard", "Ecommerce", "Admin", "EcommerceAdmin", "FinanceAdmin", "IoTAdmin"];
-DEFINE FIELD created_at ON TABLE product DEFAULT time::now() READONLY;
+DEFINE FIELD created_at ON TABLE product TYPE datetime DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON TABLE product TYPE datetime
     VALUE time::now();
 
@@ -51,21 +47,24 @@ DEFINE FIELD name ON TABLE license TYPE string
 DEFINE FIELD price_factor ON TABLE license TYPE int;
 DEFINE FIELD short_description ON TABLE license TYPE string;
 DEFINE INDEX licenseIndex ON TABLE license COLUMNS name UNIQUE;
--- Migration for cart_product table - add new license column
-CREATE license SET name = "Rusty", price_factor = 1, short_description = "Rusty (1 project sold to 1 client)";
-CREATE license SET name = "Rustier", price_factor = 2, short_description = "Rustier (1 project sold to 1 client, DevOps, unlimited personal)";
-CREATE license SET name = "Rustiest", price_factor = 9, short_description = "Rustiest (unlimited projects, DevOps, SaaS)";
-DEFINE FIELD created_at ON TABLE license DEFAULT time::now() READONLY;
+DEFINE FIELD created_at ON TABLE license TYPE datetime DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON TABLE license TYPE datetime
     VALUE time::now();
 
--- Relationship between product, license and file(artifact)
-DEFINE TABLE product_license_artifact SCHEMAFULL TYPE RELATION IN product OUT file_id;
-DEFINE FIELD license ON TABLE product_license_artifact TYPE record<license>;
-DEFINE INDEX fileIndex ON TABLE product_license_artifact
+-- Migration for license table - Default licences
+CREATE license SET name = "Rusty", price_factor = 1, short_description = "Rusty (1 project sold to 1 client)";
+CREATE license SET name = "Rustier", price_factor = 2, short_description = "Rustier (1 project sold to 1 client, DevOps, unlimited personal)";
+CREATE license SET name = "Rustiest", price_factor = 9, short_description = "Rustiest (unlimited projects, DevOps, SaaS)";
+
+-- Relationship between product and license
+DEFINE TABLE product_sku SCHEMAFULL TYPE RELATION IN product OUT product;
+DEFINE FIELD license ON TABLE product_sku TYPE record<license>;
+DEFINE FIELD artifact ON TABLE product_sku TYPE record<file_id>;
+DEFINE INDEX productLicenseIndex ON TABLE product_sku
     COLUMNS in, out, license UNIQUE;
-DEFINE FIELD in ON TABLE product_license_artifact TYPE record<product>;
-DEFINE FIELD out ON TABLE product_license_artifact TYPE record<file_id>;
+DEFINE FIELD created_at ON TABLE product_sku TYPE datetime DEFAULT time::now() READONLY;
+DEFINE FIELD updated_at ON TABLE product_sku TYPE datetime
+    VALUE time::now();
 
 
 /* Migrations */

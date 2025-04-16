@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use async_graphql::{Error, ErrorExtensions, Value};
 
 // Wrapper type for the original Error
+#[derive(Debug)]
 pub struct ExtendedError {
     message: String,
     status: Option<String>,

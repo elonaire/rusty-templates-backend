@@ -1,19 +1,39 @@
 use std::env;
 
 use async_graphql::{ComplexObject, Enum, InputObject, SimpleObject};
+use lib::utils::models::UploadedFile;
 // use reqwest::Client as ReqWestClient;
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
 #[graphql(input_name = "ProductInput")]
+pub struct ProductInput {
+    #[graphql(skip)]
+    pub id: Option<Thing>,
+    #[graphql(skip)]
+    pub owner: Option<Thing>,
+    #[graphql(skip)]
+    pub slug: String,
+    pub name: String,
+    pub price: u64,
+    pub preview_link: String,
+    pub details_file: String,
+    pub screenshot: String,
+    pub framework: Option<Framework>,
+    pub application_layer: Option<ApplicationLayer>,
+    pub ui_framework: Option<UiFramework>,
+    pub use_case: Option<UseCase>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 #[graphql(complex)]
 pub struct Product {
     #[graphql(skip)]
     pub id: Option<Thing>,
     #[graphql(skip)]
     pub owner: Option<Thing>,
-    pub slug: Option<String>,
+    pub slug: String,
     pub name: String,
     pub price: u64,
     pub preview_link: String,
@@ -29,6 +49,10 @@ pub struct Product {
 impl Product {
     async fn id(&self) -> String {
         self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
+    }
+
+    async fn owner(&self) -> String {
+        self.owner.as_ref().map(|t| &t.id).expect("owner").to_raw()
     }
 
     async fn product_details(&self) -> String {
@@ -58,6 +82,8 @@ pub enum Framework {
     Yew,
     #[graphql(name = "Dioxus")]
     Dioxus,
+    #[graphql(name = "Leptos")]
+    Leptos,
     #[graphql(name = "Axum")]
     Axum,
     #[graphql(name = "Rocket")]
@@ -111,23 +137,36 @@ pub enum UseCase {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
-#[graphql(input_name = "ProductLicenseArtifactInput")]
-#[graphql(complex)]
-pub struct ProductLicenseArtifact {
-    #[graphql(skip)]
-    pub id: Option<Thing>,
-    #[graphql(skip)]
-    pub license: Option<Thing>,
+#[graphql(input_name = "ProductSkuInput")]
+pub struct ProductSkuInput {
     pub product_id: String,
     pub license_id: String,
     pub file_id: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+#[graphql(complex)]
+pub struct ProductSku {
+    #[graphql(skip)]
+    pub id: Option<Thing>,
+    pub license: License,
+    pub artifact: UploadedFile,
+}
+
 #[ComplexObject]
-impl ProductLicenseArtifact {
+impl ProductSku {
     async fn id(&self) -> String {
         self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject, InputObject)]
+#[graphql(input_name = "UpdateLicenseInput")]
+pub struct UpdateLicenseInput {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub price_factor: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub short_description: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
