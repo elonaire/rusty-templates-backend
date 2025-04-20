@@ -2,13 +2,27 @@ syntax = "proto3";
 package products;
 
 service ProductsService {
-    rpc GetProductPrice(ProductId) returns (ProductPrice);
-    rpc GetProductArtifact(RetrieveProductArtifactArgs) returns (ProductArtifact);
+    rpc GetProductPrice(ProductSkuId) returns (ProductPrice);
+    rpc RetrieveProductSkuPrices(ProductSkuIds) returns (ProductSkuPrices);
+    rpc GetProductSkuArtifact(RetrieveProductSkuArtifactArgs) returns (ProductSkuArtifact);
     rpc GetLicensePriceFactor(GetLicensePriceFactorArgs) returns (GetLicensePriceFactorResponse);
 }
 
-message ProductId {
-    string product_id = 1;
+message ProductSkuIds {
+    repeated string product_sku_ids = 1;
+}
+
+message ProductSkuPrice {
+    string product_sku = 1;
+    uint64 unit_price = 2;
+}
+
+message ProductSkuPrices {
+    repeated ProductSkuPrice prices = 1;
+}
+
+message ProductSkuId {
+    string product_sku_id = 1;
 }
 
 message ProductPrice {
@@ -17,12 +31,11 @@ message ProductPrice {
 
 message Empty {}
 
-message RetrieveProductArtifactArgs {
-    string product_id = 1;
-    string license_id = 2;
+message RetrieveProductSkuArtifactArgs {
+    string product_sku_id = 1;
 }
 
-message ProductArtifact {
+message ProductSkuArtifact {
     string artifact = 1;
 }
 

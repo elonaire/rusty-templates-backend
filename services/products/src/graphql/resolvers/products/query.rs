@@ -116,13 +116,11 @@ impl ProductQuery {
     pub async fn fetch_product_sku_artifact(
         &self,
         ctx: &Context<'_>,
-        product_id: String,
-        license_id: String,
+        product_sku_id: String,
     ) -> Result<String> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
-        let response =
-            get_product_sku_artifact(db, product_id.as_str(), license_id.as_str()).await?;
+        let response = get_product_sku_artifact(db, product_sku_id.as_str()).await?;
 
         Ok(response)
     }

@@ -5,7 +5,7 @@ use crate::{
         resolvers::cart::mutation::{claim_cart, set_session_cookie},
         schemas::general::{Cart, Order},
     },
-    utils::orders::update_order,
+    utils::{cart::calculate_cart_total_amount, orders::update_order},
 };
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
@@ -65,7 +65,7 @@ impl OrderMutation {
             let _claimed_cart = claim_cart(db, &internal_user_id, &session_id).await?;
 
             let mut existing_cart_query = db
-                .query("SELECT * FROM cart WHERE archived=false AND owner=type::thing($user_id) LIMIT 1")
+                .query("SELECT *, (SELECT <-product_sku_id.product_sku_id[0] AS product_sku_id, quantity FROM <-cart_product[*]) AS products FROM cart WHERE archived=false AND owner=type::thing($user_id) LIMIT 1")
                 .bind(("user_id", format!("user_id:{}", internal_user_id)))
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
@@ -134,9 +134,11 @@ impl OrderMutation {
 
                     match get_user_email_res {
                         Ok(email) => {
+                            let cart_total_amount =
+                                calculate_cart_total_amount(headers, cart.products).await?;
                             let payment_info = UserPaymentDetails {
                                 email: email.into_inner().email,
-                                amount: cart.total_amount as u64,
+                                amount: cart_total_amount,
                                 reference: new_order[0]
                                     .id
                                     .as_ref()

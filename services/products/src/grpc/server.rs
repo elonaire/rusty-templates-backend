@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use products_service::{
     products_service_server::ProductsService, GetLicensePriceFactorArgs,
-    GetLicensePriceFactorResponse, ProductArtifact, ProductId, ProductPrice,
-    RetrieveProductArtifactArgs,
+    GetLicensePriceFactorResponse, ProductPrice, ProductSkuArtifact, ProductSkuId, ProductSkuIds,
+    ProductSkuPrices, RetrieveProductSkuArtifactArgs,
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
 use tonic::{Request, Response, Status};
@@ -24,34 +24,45 @@ impl ProductsServiceImplementation {
     }
 }
 
+impl From<lib::utils::models::ProductSkuPrice> for products_service::ProductSkuPrice {
+    fn from(product_sku_price: lib::utils::models::ProductSkuPrice) -> Self {
+        Self {
+            product_sku: product_sku_price.product_sku,
+            unit_price: product_sku_price.unit_price,
+        }
+    }
+}
+
 #[async_trait::async_trait]
 impl ProductsService for ProductsServiceImplementation {
     async fn get_product_price(
         &self,
-        request: Request<ProductId>,
+        request: Request<ProductSkuId>,
     ) -> Result<Response<ProductPrice>, Status> {
-        match utils::products::get_product_price(&self.db, request.into_inner().product_id.as_str())
-            .await
-        {
-            Ok(price) => Ok(Response::new(ProductPrice { price })),
-            Err(_e) => Err(Status::internal("Failed")),
-        }
-    }
-
-    async fn get_product_artifact(
-        &self,
-        request: Request<RetrieveProductArtifactArgs>,
-    ) -> Result<Response<ProductArtifact>, Status> {
-        let args = request.into_inner(); // Move once and store the result
-
-        match utils::products::get_product_sku_artifact(
+        match utils::products::get_product_price(
             &self.db,
-            args.product_id.as_str(),
-            args.license_id.as_str(),
+            request.into_inner().product_sku_id.as_str(),
         )
         .await
         {
-            Ok(artifact) => Ok(Response::new(ProductArtifact { artifact })),
+            Ok(price) => Ok(Response::new(ProductPrice { price })),
+            Err(e) => {
+                tracing::error!("Couldn't get product price: {}", e);
+                Err(Status::internal("Failed"))
+            }
+        }
+    }
+
+    async fn get_product_sku_artifact(
+        &self,
+        request: Request<RetrieveProductSkuArtifactArgs>,
+    ) -> Result<Response<ProductSkuArtifact>, Status> {
+        let args = request.into_inner(); // Move once and store the result
+
+        match utils::products::get_product_sku_artifact(&self.db, args.product_sku_id.as_str())
+            .await
+        {
+            Ok(artifact) => Ok(Response::new(ProductSkuArtifact { artifact })),
             Err(_e) => Err(Status::internal("Failed")),
         }
     }
@@ -70,6 +81,29 @@ impl ProductsService for ProductsServiceImplementation {
                 price_factor,
             })),
             Err(_e) => Err(Status::internal("Failed")),
+        }
+    }
+
+    async fn retrieve_product_sku_prices(
+        &self,
+        request: Request<ProductSkuIds>,
+    ) -> Result<Response<ProductSkuPrices>, Status> {
+        match utils::products::retrieve_product_sku_prices(
+            &self.db,
+            request.into_inner().product_sku_ids.to_vec(),
+        )
+        .await
+        {
+            Ok(prices) => Ok(Response::new(ProductSkuPrices {
+                prices: prices
+                    .into_iter()
+                    .map(|price| price.into())
+                    .collect::<Vec<products_service::ProductSkuPrice>>(),
+            })),
+            Err(e) => {
+                tracing::error!("Couldn't get product price: {}", e);
+                Err(Status::internal("Failed"))
+            }
         }
     }
 }

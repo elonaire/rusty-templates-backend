@@ -24,6 +24,13 @@ pub struct Product {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct ProductSku {
+    #[graphql(skip)]
+    pub id: Option<Thing>,
+    pub product_sku_id: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct UploadedFile {
     #[graphql(skip)]
     pub id: Option<Thing>,
@@ -329,4 +336,10 @@ pub struct GetLicensePriceFactorVar {
 pub struct GetLicensePriceFactorResponse {
     #[serde(rename = "getLicensePriceFactor")]
     pub get_license_price_factor: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
+pub struct ProductSkuPrice {
+    pub product_sku: String,
+    pub unit_price: u64,
 }

@@ -43,7 +43,7 @@ impl CartQuery {
             let mut external_product_ids_query = db
                 .query(
                     "
-                SELECT * FROM ONLY cart WHERE session_id = $session_id AND archived=false LIMIT 1
+                SELECT *, (SELECT <-product_sku_id.product_sku_id[0] AS product_sku_id, quantity FROM <-cart_product[*]) AS products FROM ONLY cart WHERE session_id = $session_id AND archived=false LIMIT 1
                 ",
                 )
                 .bind(("session_id", session_id))
