@@ -6,7 +6,7 @@ networks:
 
 services:
   gateway:
-    image: nginx:latest
+    image: nginx:alpine
     # container_name: gateway
     restart: unless-stopped
     deploy:
@@ -29,6 +29,25 @@ services:
       - /etc/ssl/certs:/etc/nginx/certs # Uncomment this line if you want to use https
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - ./nginx:/var/log/nginx
+    networks:
+      - app-tier
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 3
+      endpoint_mode: dnsrr
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+    ports:
+      - "1883-1885:1883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
     networks:
       - app-tier
   rt-frontend:
