@@ -1,26 +1,18 @@
 use std::sync::Arc;
 
 use crate::graphql::schemas::general::{Cart, CartOperation};
-use async_graphql::{Context, Error, Object, Result};
+use async_graphql::{Context, Object, Result};
 use axum::{http::HeaderMap, Extension};
 use hyper::header::{AUTHORIZATION, COOKIE, SET_COOKIE};
 use lib::{
-    integration::{
-        foreign_key::add_foreign_key_if_not_exists,
-        grpc::clients::products_service::{
-            products_service_client::ProductsServiceClient, GetLicensePriceFactorArgs,
-            ProductSkuId, RetrieveProductSkuArtifactArgs,
-        },
-    },
+    integration::foreign_key::add_foreign_key_if_not_exists,
     middleware::auth::graphql::check_auth_from_acl,
     utils::{
         custom_error::ExtendedError,
-        grpc::{create_grpc_client, AuthMetaData},
-        models::{ForeignKey, License, Product, ProductSku, User},
+        models::{ForeignKey, ProductSku, User},
     },
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use tonic::transport::Channel;
 use uuid::Uuid;
 
 struct UpdateCartArgs {

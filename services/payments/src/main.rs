@@ -28,11 +28,13 @@ use hyper::{
 use grpc::server::{
     payments_service::payments_service_server::PaymentsServiceServer, PaymentsServiceImplementation,
 };
-use lib::middleware::auth::grpc::AuthMiddleware;
+use lib::{middleware::auth::grpc::AuthMiddleware, utils::mqtt::MqttClient};
 use rest::handlers::handle_paystack_webhook;
 // use serde::Deserialize;
 use dotenvy::dotenv;
+use rumqttc::v5::AsyncClient;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
+use tokio::task;
 use tonic::transport::Server;
 use tonic_middleware::MiddlewareLayer;
 use tower_http::cors::CorsLayer;
@@ -41,6 +43,10 @@ use graphql::resolvers::mutation::Mutation;
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 type MySchema = Schema<Query, Mutation, EmptySubscription>;
+
+pub struct AppState {
+    pub mqtt_client: AsyncClient,
+}
 
 async fn graphql_handler(
     schema: Extension<MySchema>,
@@ -117,9 +123,22 @@ async fn main() -> Result<()> {
         .with_writer(stdout.and(non_blocking))
         .init();
 
+    let (client, mut eventloop) = MqttClient::new("payments-service", "localhost", 1883).await;
+
+    task::spawn(async move {
+        while let Ok(_event) = eventloop.poll().await {
+            // tracing::debug!("Received = {:?}", notification);
+        }
+    });
+
+    let shared_state = Arc::new(AppState {
+        mqtt_client: client,
+    });
+
     let app = Router::new()
         .route("/", post(graphql_handler))
         .route("/paystack/webhook", post(handle_paystack_webhook))
+        .layer(Extension(shared_state))
         .layer(Extension(schema))
         .layer(Extension(db.clone()))
         .layer(

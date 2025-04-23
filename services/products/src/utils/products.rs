@@ -4,7 +4,7 @@ use lib::utils::{
 };
 use std::io::{Error, ErrorKind};
 
-use crate::graphql::schemas::general::{License, Product};
+use crate::graphql::schemas::general::License;
 
 /// Utility function to get the price of a product by its ID.
 pub async fn get_product_price<T: Clone + AsSurrealClient>(

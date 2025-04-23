@@ -7,3 +7,6 @@ copy-schemas.sh
 start-services.sh
 copy-from-server.sh
 /services/**/logs
+/mosquitto/config/pwfile
+/mosquitto/data
+/mosquitto/log

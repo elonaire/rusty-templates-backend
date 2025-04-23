@@ -2,7 +2,7 @@ use std::io::{Error, ErrorKind};
 
 use lib::{
     integration::grpc::clients::products_service::{
-        products_service_client::ProductsServiceClient, ProductSkuIds, ProductSkuPrices,
+        products_service_client::ProductsServiceClient, ProductSkuIds,
     },
     utils::grpc::{create_grpc_client, AuthMetaData},
 };
@@ -15,6 +15,7 @@ use hyper::{
 
 use crate::graphql::schemas::general::CartProduct;
 
+/// A utility method to calculate the total amount a cart is holding
 pub async fn calculate_cart_total_amount(
     headers: &HeaderMap,
     products: Vec<CartProduct>,

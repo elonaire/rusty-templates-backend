@@ -4,3 +4,4 @@ pub mod custom_traits;
 pub mod graphql_api;
 pub mod grpc;
 pub mod models;
+pub mod mqtt;

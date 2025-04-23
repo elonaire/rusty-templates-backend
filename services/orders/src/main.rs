@@ -4,7 +4,12 @@ mod grpc;
 mod rest;
 mod utils;
 
-use std::{env, net::SocketAddr, sync::Arc};
+use std::{
+    env,
+    io::{Error, ErrorKind},
+    net::SocketAddr,
+    sync::Arc,
+};
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -28,15 +33,27 @@ use hyper::{
     Method,
 };
 
-use lib::middleware::auth::grpc::AuthMiddleware;
+use lib::{
+    middleware::auth::grpc::AuthMiddleware,
+    utils::{models::OrderStatus, mqtt::MqttClient},
+};
+use rumqttc::v5::{
+    mqttbytes::{
+        v5::{Packet, Publish},
+        QoS,
+    },
+    Event,
+};
 // use serde::Deserialize;
-use surrealdb::{engine::remote::ws::Client, Result, Surreal};
+use surrealdb::{engine::remote::ws::Client, Surreal};
+use tokio::task;
 use tonic::transport::Server;
 use tonic_middleware::MiddlewareLayer;
 use tower_http::cors::CorsLayer;
 
 use graphql::resolvers::mutation::Mutation;
 use tracing_subscriber::fmt::writer::MakeWriterExt;
+use utils::orders::update_order;
 
 type MySchema = Schema<Query, Mutation, EmptySubscription>;
 
@@ -74,8 +91,17 @@ async fn graphql_handler(
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    let db = Arc::new(database::connection::create_db_connection().await.unwrap());
+async fn main() -> Result<(), Error> {
+    let connection_pool = database::connection::create_db_connection()
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to connect to the database: {}", e);
+            Error::new(
+                ErrorKind::ConnectionRefused,
+                "Failed to connect to the database",
+            )
+        })?;
+    let db = Arc::new(connection_pool);
 
     // Bring in some needed env vars
     let deployment_env = env::var("ENVIRONMENT").unwrap_or_else(|_| "prod".to_string()); // default to production because it's the most secure
@@ -156,6 +182,46 @@ async fn main() -> Result<()> {
             .serve(grpc_address)
             .await
             .unwrap();
+    });
+
+    let (client, mut eventloop) = MqttClient::new("orders-service", "localhost", 1883).await;
+    client
+        .subscribe("payment/successful", QoS::ExactlyOnce)
+        .await
+        .unwrap();
+
+    task::spawn(async move {
+        while let Ok(event) = eventloop.poll().await {
+            match event {
+                Event::Incoming(packet) => {
+                    // Handle Incoming event
+                    match packet {
+                        Packet::Publish(message) => {
+                            // Handle Publish event
+                            tracing::debug!("Published message: {:?}", message);
+                            match message.topic.as_ref() {
+                                b"payment/successful" => {
+                                    println!("Handling successful payment: {:?}", message.payload);
+                                    let payload_str = String::from_utf8_lossy(&message.payload);
+                                    // Add logic for successful payment
+                                    update_order(&db, payload_str.as_ref(), OrderStatus::Completed)
+                                        .await
+                                        .unwrap();
+                                }
+                                _ => {
+                                    println!("Unknown topic: {:?}", message.topic);
+                                    // Handle other topics
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                Event::Outgoing(_) => {
+                    // Handle Outgoing event
+                }
+            }
+        }
     });
 
     // let listener = tokio::net::TcpListener::bind("0.0.0.0:3010").await.unwrap();
