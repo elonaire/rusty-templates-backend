@@ -1,5 +1,5 @@
 -- Enable GraphQL
-DEFINE CONFIG GRAPHQL AUTO;
+-- DEFINE CONFIG GRAPHQL AUTO;
 
 -- A schema-full user_id table
 DEFINE TABLE user_id SCHEMAFULL;
@@ -14,7 +14,7 @@ DEFINE FIELD product_id ON TABLE product_id TYPE string;
 DEFINE INDEX productIndex ON TABLE product_id COLUMNS product_id UNIQUE;
 
 -- A schema-full comment table.
-DEFINE TABLE comment SCHEMAFULL TYPE RELATION IN user_id OUT product_id;
+DEFINE TABLE comment SCHEMAFULL TYPE NORMAL;
 -- define some fields.
 DEFINE FIELD content ON TABLE comment TYPE string;
 -- DEFINE FIELD published_date ON TABLE comment VALUE <datetime>$value;
@@ -22,15 +22,15 @@ DEFINE FIELD created_at ON TABLE comment
   DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON TABLE comment TYPE datetime
   VALUE time::now();
-DEFINE FIELD in ON TABLE comment TYPE record<user_id>;
-DEFINE FIELD out ON TABLE comment TYPE record<product_id>;
+
+
+-- A schema-full user_id-comment as writer relation table.
+DEFINE TABLE wrote SCHEMAFULL TYPE RELATION IN user_id OUT comment;
 
 -- Relationship between comment and comment
 DEFINE TABLE has_reply SCHEMAFULL TYPE RELATION IN comment OUT comment;
 DEFINE INDEX commentCommentIndex ON TABLE has_reply
 COLUMNS in, out UNIQUE;
-DEFINE FIELD in ON TABLE has_reply TYPE record<comment>;
-DEFINE FIELD out ON TABLE has_reply TYPE record<comment>;
 
 -- A schema-full reaction table.
 DEFINE TABLE reaction SCHEMAFULL TYPE RELATION IN user_id OUT comment;
@@ -42,10 +42,6 @@ DEFINE FIELD created_at ON TABLE reaction TYPE datetime
   DEFAULT time::now() READONLY;
 DEFINE INDEX reactionIndex ON TABLE reaction
   COLUMNS in, out UNIQUE;
-DEFINE INDEX userReactionIndex ON TABLE reaction
-    COLUMNS in UNIQUE;
-DEFINE FIELD in ON TABLE reaction TYPE record<user_id>;
-DEFINE FIELD out ON TABLE reaction TYPE record<comment>;
 
 -- A schema-full rating table.
 DEFINE TABLE rating SCHEMAFULL TYPE RELATION IN user_id OUT product_id;
@@ -56,8 +52,6 @@ DEFINE FIELD created_at ON TABLE rating TYPE datetime
   DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON TABLE rating TYPE datetime
   VALUE time::now();
-DEFINE FIELD in ON TABLE rating TYPE record<user_id>;
-DEFINE FIELD out ON TABLE rating TYPE record<product_id>;
 -- Create unique index to ensure a user can rate a product only once
 DEFINE INDEX ratingIndex ON TABLE rating
   COLUMNS in, out UNIQUE;
