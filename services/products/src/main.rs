@@ -24,11 +24,12 @@ use hyper::{
     Method,
 };
 
-use lib::middleware::auth::grpc::AuthMiddleware;
-// use serde::Deserialize;
-use grpc::server::{
-    products_service::products_service_server::ProductsServiceServer, ProductsServiceImplementation,
+use lib::{
+    integration::grpc::clients::products_service::products_service_server::ProductsServiceServer,
+    middleware::auth::grpc::AuthMiddleware,
 };
+// use serde::Deserialize;
+use grpc::server::ProductsServiceImplementation;
 use surrealdb::{engine::remote::ws::Client, Result, Surreal};
 use tonic::transport::Server;
 use tonic_middleware::MiddlewareLayer;

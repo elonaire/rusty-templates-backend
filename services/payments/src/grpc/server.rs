@@ -1,16 +1,12 @@
 use std::sync::Arc;
 
-use payments_service::{
+use lib::integration::grpc::clients::payments_service::{
     payments_service_server::PaymentsService, PaymentIntegrationResponse, UserPaymentDetails,
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
 use tonic::{Request, Response, Status};
 
 use crate::utils;
-
-pub mod payments_service {
-    tonic::include_proto!("payments");
-}
 
 pub struct PaymentsServiceImplementation {
     db: Arc<Surreal<Client>>,
@@ -19,16 +15,6 @@ pub struct PaymentsServiceImplementation {
 impl PaymentsServiceImplementation {
     pub fn new(db: Arc<Surreal<Client>>) -> Self {
         Self { db }
-    }
-}
-
-impl From<UserPaymentDetails> for lib::utils::models::UserPaymentDetails {
-    fn from(user: UserPaymentDetails) -> Self {
-        Self {
-            email: user.email,
-            amount: user.amount,
-            reference: user.reference,
-        }
     }
 }
 

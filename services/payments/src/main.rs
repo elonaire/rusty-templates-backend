@@ -25,10 +25,11 @@ use hyper::{
     Method,
 };
 
-use grpc::server::{
-    payments_service::payments_service_server::PaymentsServiceServer, PaymentsServiceImplementation,
+use grpc::server::PaymentsServiceImplementation;
+use lib::{
+    integration::grpc::clients::payments_service::payments_service_server::PaymentsServiceServer,
+    middleware::auth::grpc::AuthMiddleware, utils::mqtt::MqttClient,
 };
-use lib::{middleware::auth::grpc::AuthMiddleware, utils::mqtt::MqttClient};
 use rest::handlers::handle_paystack_webhook;
 // use serde::Deserialize;
 use dotenvy::dotenv;

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use orders_service::{
+use lib::integration::grpc::clients::orders_service::{
     orders_service_server::OrdersService, ArtifactsPurchaseDetails, GetAllArtifactsForOrderPayload,
     UpdateOrderPayload, UpdateOrderResponse,
 };
@@ -8,10 +8,6 @@ use surrealdb::{engine::remote::ws::Client, Surreal};
 use tonic::{Request, Response, Status};
 
 use crate::utils;
-
-pub mod orders_service {
-    tonic::include_proto!("orders");
-}
 
 pub struct OrdersServiceImplementation {
     db: Arc<Surreal<Client>>,

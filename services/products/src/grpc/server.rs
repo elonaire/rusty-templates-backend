@@ -1,18 +1,14 @@
 use std::sync::Arc;
 
-use products_service::{
+use lib::integration::grpc::clients::products_service::{
     products_service_server::ProductsService, GetLicensePriceFactorArgs,
     GetLicensePriceFactorResponse, ProductPrice, ProductSkuArtifact, ProductSkuId, ProductSkuIds,
-    ProductSkuPrices, RetrieveProductSkuArtifactArgs,
+    ProductSkuPrice, ProductSkuPrices, RetrieveProductSkuArtifactArgs,
 };
 use surrealdb::{engine::remote::ws::Client, Surreal};
 use tonic::{Request, Response, Status};
 
 use crate::utils;
-
-pub mod products_service {
-    tonic::include_proto!("products");
-}
 
 pub struct ProductsServiceImplementation {
     db: Arc<Surreal<Client>>,
@@ -21,15 +17,6 @@ pub struct ProductsServiceImplementation {
 impl ProductsServiceImplementation {
     pub fn new(db: Arc<Surreal<Client>>) -> Self {
         Self { db }
-    }
-}
-
-impl From<lib::utils::models::ProductSkuPrice> for products_service::ProductSkuPrice {
-    fn from(product_sku_price: lib::utils::models::ProductSkuPrice) -> Self {
-        Self {
-            product_sku: product_sku_price.product_sku,
-            unit_price: product_sku_price.unit_price,
-        }
     }
 }
 
@@ -98,7 +85,7 @@ impl ProductsService for ProductsServiceImplementation {
                 prices: prices
                     .into_iter()
                     .map(|price| price.into())
-                    .collect::<Vec<products_service::ProductSkuPrice>>(),
+                    .collect::<Vec<ProductSkuPrice>>(),
             })),
             Err(e) => {
                 tracing::error!("Couldn't get product price: {}", e);

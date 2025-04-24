@@ -21,9 +21,7 @@ use axum::{
 };
 
 use graphql::resolvers::query::Query;
-use grpc::server::{
-    orders_service::orders_service_server::OrdersServiceServer, OrdersServiceImplementation,
-};
+use grpc::server::OrdersServiceImplementation;
 use hyper::{
     header::{
         ACCEPT, ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
@@ -34,6 +32,7 @@ use hyper::{
 };
 
 use lib::{
+    integration::grpc::clients::orders_service::orders_service_server::OrdersServiceServer,
     middleware::auth::grpc::AuthMiddleware,
     utils::{models::OrderStatus, mqtt::MqttClient},
 };

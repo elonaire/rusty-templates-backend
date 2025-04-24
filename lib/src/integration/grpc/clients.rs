@@ -1,3 +1,5 @@
+use crate::utils;
+
 // should match the package name in the .proto file
 pub mod acl_service {
     tonic::include_proto!("acl");
@@ -23,4 +25,23 @@ pub mod orders_service {
 
 pub mod payments_service {
     tonic::include_proto!("payments");
+}
+
+impl From<payments_service::UserPaymentDetails> for utils::models::UserPaymentDetails {
+    fn from(user: payments_service::UserPaymentDetails) -> Self {
+        Self {
+            email: user.email,
+            amount: user.amount,
+            reference: user.reference,
+        }
+    }
+}
+
+impl From<utils::models::ProductSkuPrice> for products_service::ProductSkuPrice {
+    fn from(product_sku_price: utils::models::ProductSkuPrice) -> Self {
+        Self {
+            product_sku: product_sku_price.product_sku,
+            unit_price: product_sku_price.unit_price,
+        }
+    }
 }
