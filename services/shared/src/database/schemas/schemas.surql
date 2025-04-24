@@ -18,7 +18,7 @@ DEFINE TABLE comment SCHEMAFULL TYPE NORMAL;
 -- define some fields.
 DEFINE FIELD content ON TABLE comment TYPE string;
 -- DEFINE FIELD published_date ON TABLE comment VALUE <datetime>$value;
-DEFINE FIELD created_at ON TABLE comment
+DEFINE FIELD created_at ON TABLE comment TYPE datetime
   DEFAULT time::now() READONLY;
 DEFINE FIELD updated_at ON TABLE comment TYPE datetime
   VALUE time::now();
