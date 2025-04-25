@@ -31,6 +31,7 @@ services:
       - ./nginx:/var/log/nginx
     networks:
       - app-tier
+
   mqtt-broker:
     image: eclipse-mosquitto:latest
     restart: unless-stopped
@@ -50,6 +51,7 @@ services:
       - ./mosquitto/log:/mosquitto/log
     networks:
       - app-tier
+
   rt-frontend:
     image: elonaire/rt-frontend:latest
     pull_policy: always

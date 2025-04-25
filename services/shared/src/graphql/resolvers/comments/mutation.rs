@@ -54,11 +54,12 @@ impl CommentMutation {
                 .query(
                     "
                 BEGIN TRANSACTION;
-                LET $user = type::thing($user_id);
-                LET $product = type::thing($product_id);
-                LET $new_comment = (RELATE $user -> comment -> $product CONTENT {
+                LET $user = type::thing('user_id', $user_id);
+                LET $product = type::thing('product_id', $product_id);
+                LET $new_comment = (CREATE comment CONTENT {
                     content: $comment_body.content,
-                } RETURN content);
+                } RETURN AFTER);
+                RELATE $user -> wrote -> $new_comment;
                 RETURN $new_comment;
                 COMMIT TRANSACTION;
                 ",
@@ -66,34 +67,34 @@ impl CommentMutation {
                 .bind(("comment_body", comment))
                 .bind((
                     "user_id",
-                    format!(
-                        "user_id:{}",
-                        author_result
-                            .unwrap()
-                            .id
-                            .as_ref()
-                            .map(|t| &t.id)
-                            .expect("id")
-                            .to_raw()
-                    ),
+                    author_result
+                        .unwrap()
+                        .id
+                        .as_ref()
+                        .map(|t| &t.id)
+                        .expect("id")
+                        .to_raw(),
                 ))
                 .bind((
                     "product_id",
-                    format!(
-                        "product_id:{}",
-                        commented_product_result
-                            .unwrap()
-                            .id
-                            .as_ref()
-                            .map(|t| &t.id)
-                            .expect("id")
-                            .to_raw()
-                    ),
+                    commented_product_result
+                        .unwrap()
+                        .id
+                        .as_ref()
+                        .map(|t| &t.id)
+                        .expect("id")
+                        .to_raw(),
                 ))
                 .await
-                .map_err(|e| Error::new(e.to_string()))?;
+                .map_err(|e| {
+                    tracing::error!("DB Query Error: {}", e);
+                    ExtendedError::new("Comment not posted", Some(400.to_string())).build()
+                })?;
 
-            let response: Vec<Comment> = post_comment_transaction.take(0).unwrap();
+            let response: Vec<Comment> = post_comment_transaction.take(0).map_err(|e| {
+                tracing::error!("Deserialization Error: {}", e);
+                ExtendedError::new("Rating not created", Some(400.to_string())).build()
+            })?;
 
             Ok(response)
         } else {
