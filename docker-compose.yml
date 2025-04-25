@@ -338,6 +338,23 @@ services:
       - MOSQUITTO_USER=${MOSQUITTO_USER}
       - MOSQUITTO_USER_PASSWORD=${MOSQUITTO_USER_PASSWORD}
 
+  rt-surrealist:
+    image: surrealdb/surrealist:latest
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - 3020:3020
+    container_name: rt-surrealist
+    depends_on:
+      - rt-acl-db
+      - rt-products-db
+      - rt-files-db
+      - rt-orders-db
+      - rt-payments-db
+      - rt-shared-db
+    networks:
+      - app-tier
+
   rt-acl-db:
     image: surrealdb/surrealdb:v2.2.1
     restart: unless-stopped
@@ -353,6 +370,7 @@ services:
     environment:
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+
   rt-products-db:
     image: surrealdb/surrealdb:v2.2.1
     restart: unless-stopped

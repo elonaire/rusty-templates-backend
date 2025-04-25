@@ -104,7 +104,6 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/", post(graphql_handler))
-        // .route("/oauth/callback", get(oauth_handler))
         .layer(Extension(schema))
         .layer(Extension(db))
         .layer(

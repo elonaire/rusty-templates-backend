@@ -57,16 +57,10 @@ DEFINE INDEX ratingIndex ON TABLE rating
   COLUMNS in, out UNIQUE;
 
 -- A computed view table for average product ratings
-DEFINE TABLE average_rating SCHEMAFULL;
--- Define fields
-DEFINE FIELD product_id ON TABLE average_rating TYPE record<product_id>;
-DEFINE FIELD average_rating_value ON TABLE average_rating TYPE float;
-DEFINE FIELD rating_count ON TABLE average_rating TYPE int;
-  -- Query to compute the average rating
-DEFINE TABLE average_rating AS
+DEFINE TABLE average_rating TYPE NORMAL AS
     SELECT
-      out AS product_id,
+      <-product_id.product_id AS product_id,
       math::mean(rating_value) AS average_rating_value,
       count() AS rating_count
     FROM rating
-    GROUP BY out;
+    GROUP BY product_id;

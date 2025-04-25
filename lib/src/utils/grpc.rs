@@ -110,6 +110,10 @@ pub async fn create_grpc_client<'a, R, T: GrpcClient>(
 async fn add_auth_headers_to_request<R>(
     mut auth_metadata: AuthMetaData<'_, R>,
 ) -> Result<(), StdError> {
+    if auth_metadata.auth_header.is_none() || auth_metadata.cookie_header.is_none() {
+        return Err(StdError::new(ErrorKind::InvalidData, "Invalid Request"));
+    }
+
     let token: MetadataValue<_> = auth_metadata
         .auth_header
         .unwrap()
