@@ -60,6 +60,7 @@ impl CommentMutation {
                     content: $comment_body.content,
                 } RETURN AFTER);
                 RELATE $user -> wrote -> $new_comment;
+                RELATE $product -> has_comment -> $new_comment;
                 RETURN $new_comment;
                 COMMIT TRANSACTION;
                 ",

@@ -24,6 +24,9 @@ DEFINE FIELD updated_at ON TABLE comment TYPE datetime
   VALUE time::now();
 
 
+-- A schema-full product_id-comment relation table.
+DEFINE TABLE has_comment SCHEMAFULL TYPE RELATION IN product_id OUT comment;
+
 -- A schema-full user_id-comment as writer relation table.
 DEFINE TABLE wrote SCHEMAFULL TYPE RELATION IN user_id OUT comment;
 
