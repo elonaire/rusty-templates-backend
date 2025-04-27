@@ -23,10 +23,6 @@ DEFINE FIELD created_at ON TABLE comment TYPE datetime
 DEFINE FIELD updated_at ON TABLE comment TYPE datetime
   VALUE time::now();
 
-
--- A schema-full product_id-comment relation table.
-DEFINE TABLE has_comment SCHEMAFULL TYPE RELATION IN product_id OUT comment;
-
 -- A schema-full user_id-comment as writer relation table.
 DEFINE TABLE wrote SCHEMAFULL TYPE RELATION IN user_id OUT comment;
 
@@ -46,24 +42,27 @@ DEFINE FIELD created_at ON TABLE reaction TYPE datetime
 DEFINE INDEX reactionIndex ON TABLE reaction
   COLUMNS in, out UNIQUE;
 
--- A schema-full rating table.
-DEFINE TABLE rating SCHEMAFULL TYPE RELATION IN user_id OUT product_id;
+-- A schema-full review table.
+DEFINE TABLE review SCHEMAFULL TYPE RELATION IN user_id OUT product_id;
 -- Define fields.
-DEFINE FIELD rating_value ON TABLE rating TYPE int
+DEFINE FIELD rating ON TABLE review TYPE int
   ASSERT $value >= 1 AND $value <= 5; -- Assuming rating values between 1 and 5
-DEFINE FIELD created_at ON TABLE rating TYPE datetime
+DEFINE FIELD created_at ON TABLE review TYPE datetime
   DEFAULT time::now() READONLY;
-DEFINE FIELD updated_at ON TABLE rating TYPE datetime
+DEFINE FIELD updated_at ON TABLE review TYPE datetime
   VALUE time::now();
 -- Create unique index to ensure a user can rate a product only once
-DEFINE INDEX ratingIndex ON TABLE rating
+DEFINE INDEX reviewIndex ON TABLE review
   COLUMNS in, out UNIQUE;
 
+-- A schema-full product_id/review-comment relation table.
+DEFINE TABLE has_comment SCHEMAFULL TYPE RELATION IN product_id | review OUT comment;
+
 -- A computed view table for average product ratings
-DEFINE TABLE average_rating TYPE NORMAL AS
+DEFINE TABLE average_rating AS
     SELECT
-      <-product_id.product_id AS product_id,
-      math::mean(rating_value) AS average_rating_value,
-      count() AS rating_count
-    FROM rating
+    ->product_id[0].product_id AS product_id,
+    math::mean(<float> rating) AS average_rating_value,
+    count() AS no_of_reviews
+    FROM review
     GROUP BY product_id;

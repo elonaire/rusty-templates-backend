@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::graphql::schemas::ratings::Rating;
+use crate::graphql::schemas::reviews::Review;
 use async_graphql::{Context, Object, Result};
 use axum::{http::HeaderMap, Extension};
 use lib::{
@@ -14,16 +14,16 @@ use lib::{
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
 #[derive(Default)]
-pub struct RatingMutation;
+pub struct ReviewMutation;
 
 #[Object]
-impl RatingMutation {
-    pub async fn rate_product(
+impl ReviewMutation {
+    pub async fn create_product_review(
         &self,
         ctx: &Context<'_>,
-        rating: Rating,
+        review: Review,
         product_id: String,
-    ) -> Result<Vec<Rating>> {
+    ) -> Result<Vec<Review>> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
@@ -50,20 +50,30 @@ impl RatingMutation {
             >(db, product_fk)
             .await;
 
-            let mut rate_product_transaction = db
+            let mut review_product_transaction = db
                 .query(
                     "
                     BEGIN TRANSACTION;
                     LET $user = type::thing('user_id', $user_id);
                     LET $product = type::thing('product_id', $product_id);
-                    LET $new_rating = (RELATE $user -> rating -> $product CONTENT {
-                        rating_value: $rating_body.rating_value
+                    LET $new_review = (RELATE $user -> review -> $product CONTENT {
+                        rating: $review.rating
                     } RETURN AFTER);
-                    RETURN $new_rating;
+                    LET $new_review_value_id = (SELECT VALUE id FROM $new_review);
+
+                    IF $review.comment IS NOT NONE {
+                        LET $new_comment = (CREATE comment CONTENT {
+                            content: $review.comment
+                        } RETURN AFTER);
+                        LET $new_comment_id = (SELECT VALUE id FROM $new_comment);
+                        LET $new_review_comment = (RELATE $new_review_value_id -> has_comment -> $new_comment_id RETURN AFTER);
+                    };
+
+                    RETURN $new_review;
                     COMMIT TRANSACTION;
                 ",
                 )
-                .bind(("rating_body", rating))
+                .bind(("review", review))
                 .bind((
                     "user_id",
                     author_result
@@ -87,12 +97,12 @@ impl RatingMutation {
                 .await
                 .map_err(|e| {
                     tracing::error!("DB Query Error: {}", e);
-                    ExtendedError::new("Rating not created", Some(400.to_string())).build()
+                    ExtendedError::new("Review not created", Some(400.to_string())).build()
                 })?;
 
-            let response: Vec<Rating> = rate_product_transaction.take(0).map_err(|e| {
+            let response: Vec<Review> = review_product_transaction.take(0).map_err(|e| {
                 tracing::error!("Deserialization Error: {}", e);
-                ExtendedError::new("Rating not created", Some(400.to_string())).build()
+                ExtendedError::new("Review not created", Some(400.to_string())).build()
             })?;
 
             Ok(response)

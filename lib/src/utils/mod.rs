@@ -5,3 +5,4 @@ pub mod graphql_api;
 pub mod grpc;
 pub mod models;
 pub mod mqtt;
+pub mod serialization;

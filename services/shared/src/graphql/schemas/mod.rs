@@ -1,2 +1,2 @@
-pub mod ratings;
 pub mod comments;
+pub mod reviews;

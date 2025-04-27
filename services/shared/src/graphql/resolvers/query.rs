@@ -1,6 +1,6 @@
 use async_graphql::{MergedObject, Object};
 
-use super::comments::query::CommentsQuery;
+use super::{comments::query::CommentsQuery, reviews::query::ReviewsQuery};
 
 #[derive(Default)]
 pub struct EmptyQuery;
@@ -13,4 +13,4 @@ impl EmptyQuery {
 }
 
 #[derive(MergedObject, Default)]
-pub struct Query(EmptyQuery, CommentsQuery);
+pub struct Query(EmptyQuery, CommentsQuery, ReviewsQuery);
