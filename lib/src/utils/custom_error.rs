@@ -3,15 +3,14 @@ use std::collections::BTreeMap;
 use async_graphql::{Error, ErrorExtensions, Value};
 
 // Wrapper type for the original Error
-#[derive(Debug)]
 pub struct ExtendedError {
     message: String,
-    status: Option<String>,
+    status: Option<u16>,
 }
 
 impl ExtendedError {
     // Constructor
-    pub fn new(message: impl Into<String>, status: Option<String>) -> Self {
+    pub fn new(message: impl Into<String>, status: Option<u16>) -> Self {
         ExtendedError {
             message: message.into(),
             status,
@@ -19,7 +18,7 @@ impl ExtendedError {
     }
 
     // Setter for status
-    pub fn set_status(&mut self, status: String) {
+    pub fn set_status(&mut self, status: u16) {
         self.status = Some(status);
     }
 

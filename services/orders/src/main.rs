@@ -37,10 +37,7 @@ use lib::{
     utils::{models::OrderStatus, mqtt::MqttClient},
 };
 use rumqttc::v5::{
-    mqttbytes::{
-        v5::{Packet, Publish},
-        QoS,
-    },
+    mqttbytes::{v5::Packet, QoS},
     Event,
 };
 // use serde::Deserialize;
@@ -180,14 +177,20 @@ async fn main() -> Result<(), Error> {
             .add_service(OrdersServiceServer::new(orders_grpc))
             .serve(grpc_address)
             .await
-            .unwrap();
+            .map_err(|e| {
+                tracing::error!("Failed to start gRPC server: {}", e);
+            })
+            .ok();
     });
 
     let (client, mut eventloop) = MqttClient::new("orders-service", "localhost", 1883).await;
     client
         .subscribe("payment/successful", QoS::ExactlyOnce)
         .await
-        .unwrap();
+        .map_err(|e| {
+            tracing::error!("Failed to subscribe to payment/successful event: {}", e);
+        })
+        .ok();
 
     task::spawn(async move {
         while let Ok(event) = eventloop.poll().await {
@@ -197,18 +200,22 @@ async fn main() -> Result<(), Error> {
                     match packet {
                         Packet::Publish(message) => {
                             // Handle Publish event
-                            tracing::debug!("Published message: {:?}", message);
                             match message.topic.as_ref() {
                                 b"payment/successful" => {
-                                    println!("Handling successful payment: {:?}", message.payload);
                                     let payload_str = String::from_utf8_lossy(&message.payload);
                                     // Add logic for successful payment
                                     update_order(&db, payload_str.as_ref(), OrderStatus::Completed)
                                         .await
-                                        .unwrap();
+                                        .map_err(|e| {
+                                            tracing::error!(
+                                                "(payment/successful)Failed to update order: {}",
+                                                e
+                                            );
+                                        })
+                                        .ok();
                                 }
                                 _ => {
-                                    println!("Unknown topic: {:?}", message.topic);
+                                    tracing::error!("Unknown topic: {:?}", message.topic);
                                     // Handle other topics
                                 }
                             }
@@ -223,11 +230,23 @@ async fn main() -> Result<(), Error> {
         }
     });
 
-    // let listener = tokio::net::TcpListener::bind("0.0.0.0:3010").await.unwrap();
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", orders_http_port))
-        .await
-        .unwrap();
-    serve(listener, app).await.unwrap();
+    match tokio::net::TcpListener::bind(format!("0.0.0.0:{}", orders_http_port)).await {
+        Ok(http_listener) => {
+            let _http_server = serve(http_listener, app)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to create HTTP server: {}", e);
+                })
+                .ok();
+        }
+        Err(e) => {
+            tracing::error!("Failed to create TCP listener: {}", e);
+            return Err(Error::new(
+                ErrorKind::ConnectionAborted,
+                "Failed to create TCP listener",
+            ));
+        }
+    };
 
     Ok(())
 }

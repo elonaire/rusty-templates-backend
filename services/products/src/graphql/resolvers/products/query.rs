@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
+use hyper::StatusCode;
 use lib::utils::custom_error::ExtendedError;
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
@@ -68,27 +69,6 @@ impl ProductQuery {
             }
         }
 
-        // while let Some(record) = records_iter.next() {
-        //     let mut products_query = db
-        //         .query(
-        //             "
-        //             SELECT * FROM ONLY type::thing($product_id)
-        //             ",
-        //         )
-        //         .bind(("product_id", record.1))
-        //         .await
-        //         .map_err(|e| Error::new(e.to_string()))?;
-
-        //     let product: Option<Product> = products_query.take(0)?;
-
-        //     match product {
-        //         Some(p) => {
-        //             products.push(p);
-        //         }
-        //         None => {}
-        //     }
-        // }
-
         Ok(products)
     }
 
@@ -109,7 +89,11 @@ impl ProductQuery {
 
         match product {
             Some(product) => Ok(product),
-            None => Err(ExtendedError::new("Product not found!", Some(404.to_string())).build()),
+            None => Err(ExtendedError::new(
+                "Product not found!",
+                Some(StatusCode::NOT_FOUND.as_u16()),
+            )
+            .build()),
         }
     }
 

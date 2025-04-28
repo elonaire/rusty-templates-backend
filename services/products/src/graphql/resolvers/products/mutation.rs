@@ -5,7 +5,10 @@ use crate::graphql::schemas::general::{
 };
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
-use hyper::header::{AUTHORIZATION, COOKIE};
+use hyper::{
+    header::{AUTHORIZATION, COOKIE},
+    StatusCode,
+};
 use lib::{
     integration::{
         foreign_key::add_foreign_key_if_not_exists,
@@ -66,30 +69,46 @@ impl ProductMutation {
                         .await
                         .map_err(|e| {
                             tracing::error!("DB Query Error: {}", e);
-                            ExtendedError::new("Product not created", Some(400.to_string())).build()
+                            ExtendedError::new(
+                                "Product not created",
+                                Some(StatusCode::BAD_REQUEST.as_u16()),
+                            )
+                            .build()
                         })?;
 
                     let created_product: Option<Product> =
                         create_product_query.take(0).map_err(|e| {
                             tracing::error!("Deserialization Error: {}", e);
-                            ExtendedError::new("Product not created", Some(400.to_string())).build()
+                            ExtendedError::new(
+                                "Product not created",
+                                Some(StatusCode::BAD_REQUEST.as_u16()),
+                            )
+                            .build()
                         })?;
 
                     match created_product {
                         Some(product) => Ok(product),
                         None => {
                             tracing::error!("None(Product) was created");
-                            Err(
-                                ExtendedError::new("Product not created", Some(400.to_string()))
-                                    .build(),
+                            Err(ExtendedError::new(
+                                "Product not created",
+                                Some(StatusCode::BAD_REQUEST.as_u16()),
                             )
+                            .build())
                         }
                     }
                 }
-                None => Err(ExtendedError::new("Not Authorized!", Some(403.to_string())).build()),
+                None => Err(ExtendedError::new(
+                    "Not Authorized!",
+                    Some(StatusCode::UNAUTHORIZED.as_u16()),
+                )
+                .build()),
             }
         } else {
-            Err(ExtendedError::new("Not Authorized!", Some(403.to_string())).build())
+            Err(
+                ExtendedError::new("Not Authorized!", Some(StatusCode::UNAUTHORIZED.as_u16()))
+                    .build(),
+            )
         }
     }
 
@@ -188,24 +207,33 @@ impl ProductMutation {
                 .await
                 .map_err(|e| {
                     tracing::error!("DB Query Error: {}", e);
-                    ExtendedError::new("Product SKU not created", Some(400.to_string())).build()
+                    ExtendedError::new("Product SKU not created", Some(StatusCode::BAD_REQUEST.as_u16())).build()
                 })?;
 
             let response: Option<ProductSku> = product_sku_query.take(0).map_err(|e| {
                 tracing::error!("Deserialization Error: {}", e);
-                ExtendedError::new("Product SKU not created", Some(400.to_string())).build()
+                ExtendedError::new(
+                    "Product SKU not created",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build()
             })?;
 
             tracing::debug!("ProductSku: {:?}", response);
 
             match response {
                 Some(product_sku) => Ok(product_sku),
-                None => Err(
-                    ExtendedError::new("Failed to Add artifact!", Some(500.to_string())).build(),
-                ),
+                None => Err(ExtendedError::new(
+                    "Failed to Add artifact!",
+                    Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+                )
+                .build()),
             }
         } else {
-            Err(ExtendedError::new("Invalid Request!", Some(400.to_string())).build())
+            Err(
+                ExtendedError::new("Invalid Request!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 
@@ -231,10 +259,17 @@ impl ProductMutation {
 
             match response {
                 Some(license) => Ok(license),
-                None => Err(ExtendedError::new("License not found", Some(404.to_string())).build()),
+                None => Err(ExtendedError::new(
+                    "License not found",
+                    Some(StatusCode::NOT_FOUND.as_u16()),
+                )
+                .build()),
             }
         } else {
-            Err(ExtendedError::new("Invalid Request!", Some(400.to_string())).build())
+            Err(
+                ExtendedError::new("Invalid Request!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 }

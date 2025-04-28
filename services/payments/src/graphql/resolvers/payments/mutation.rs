@@ -1,6 +1,7 @@
 // use crate::graphql::schemas::general::ExchangeRatesResponse;
 use async_graphql::{Context, Object, Result};
 use axum::http::HeaderMap;
+use hyper::StatusCode;
 use lib::{
     middleware::auth::graphql::check_auth_from_acl,
     utils::{
@@ -28,7 +29,10 @@ impl PaymentMutation {
 
             Ok(payment_req)
         } else {
-            Err(ExtendedError::new("Not Authorized!", Some(403.to_string())).build())
+            Err(
+                ExtendedError::new("Not Authorized!", Some(StatusCode::UNAUTHORIZED.as_u16()))
+                    .build(),
+            )
         }
     }
 }

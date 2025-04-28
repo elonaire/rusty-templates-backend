@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_graphql::{Context, Object, Result};
 use axum::Extension;
+use hyper::StatusCode;
 use lib::{
     integration::foreign_key::add_foreign_key_if_not_exists,
     utils::{
@@ -51,12 +52,20 @@ impl ReviewsQuery {
             .await
             .map_err(|e| {
                 tracing::error!("DB Query Error: {}", e);
-                ExtendedError::new("Error fetching ratings", Some(400.to_string())).build()
+                ExtendedError::new(
+                    "Error fetching ratings",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build()
             })?;
 
         let reviews: Vec<Review> = reviews_query.take(0).map_err(|e| {
             tracing::error!("Deserialization Error: {}", e);
-            ExtendedError::new("Error fetching reviews", Some(400.to_string())).build()
+            ExtendedError::new(
+                "Error fetching reviews",
+                Some(StatusCode::BAD_REQUEST.as_u16()),
+            )
+            .build()
         })?;
         Ok(reviews)
     }
@@ -93,12 +102,16 @@ impl ReviewsQuery {
             .await
             .map_err(|e| {
                 tracing::error!("DB Query Error: {}", e);
-                ExtendedError::new("Error fetching ratings", Some(400.to_string())).build()
+                ExtendedError::new("Error fetching ratings", Some(StatusCode::BAD_REQUEST.as_u16())).build()
             })?;
 
         let average_rating: Option<AverageRating> = average_rating_query.take(0).map_err(|e| {
             tracing::error!("Deserialization Error: {}", e);
-            ExtendedError::new("Error fetching ratings", Some(400.to_string())).build()
+            ExtendedError::new(
+                "Error fetching ratings",
+                Some(StatusCode::BAD_REQUEST.as_u16()),
+            )
+            .build()
         })?;
 
         match average_rating {

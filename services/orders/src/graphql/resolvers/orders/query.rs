@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
-use hyper::HeaderMap;
+use hyper::{HeaderMap, StatusCode};
 use lib::{
     middleware::auth::graphql::check_auth_from_acl,
     utils::{
@@ -60,7 +60,10 @@ impl OrderQuery {
             let artifacts = get_all_artifacts_for_order(db, order_id.as_str()).await?;
             Ok(artifacts)
         } else {
-            Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
+            Err(
+                ExtendedError::new("Cart is empty!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 
@@ -95,7 +98,10 @@ impl OrderQuery {
 
             Ok(previous_orders)
         } else {
-            Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
+            Err(
+                ExtendedError::new("Cart is empty!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 }

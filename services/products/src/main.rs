@@ -3,7 +3,12 @@ mod graphql;
 mod grpc;
 mod utils;
 
-use std::{env, net::SocketAddr, sync::Arc};
+use std::{
+    env,
+    io::{Error, ErrorKind},
+    net::SocketAddr,
+    sync::Arc,
+};
 
 use async_graphql::{EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
@@ -30,7 +35,7 @@ use lib::{
 };
 // use serde::Deserialize;
 use grpc::server::ProductsServiceImplementation;
-use surrealdb::{engine::remote::ws::Client, Result, Surreal};
+use surrealdb::{engine::remote::ws::Client, Surreal};
 use tonic::transport::Server;
 use tonic_middleware::MiddlewareLayer;
 use tower_http::cors::CorsLayer;
@@ -73,8 +78,17 @@ async fn graphql_handler(
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
-    let db = Arc::new(database::connection::create_db_connection().await.unwrap());
+async fn main() -> Result<(), Error> {
+    let connection_pool = database::connection::create_db_connection()
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to connect to the database: {}", e);
+            Error::new(
+                ErrorKind::ConnectionRefused,
+                "Failed to connect to the database",
+            )
+        })?;
+    let db = Arc::new(connection_pool);
 
     // Bring in some needed env vars
     let deployment_env = env::var("ENVIRONMENT").unwrap_or_else(|_| "prod".to_string()); // default to production because it's the most secure
@@ -154,13 +168,29 @@ async fn main() -> Result<()> {
             .add_service(ProductsServiceServer::new(products_grpc))
             .serve(grpc_address)
             .await
-            .unwrap();
+            .map_err(|e| {
+                tracing::error!("Failed to start gRPC server: {}", e);
+            })
+            .ok();
     });
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", products_http_port))
-        .await
-        .unwrap();
-    serve(listener, app).await.unwrap();
+    match tokio::net::TcpListener::bind(format!("0.0.0.0:{}", products_http_port)).await {
+        Ok(http_listener) => {
+            let _http_server = serve(http_listener, app)
+                .await
+                .map_err(|e| {
+                    tracing::error!("Failed to create HTTP server: {}", e);
+                })
+                .ok();
+        }
+        Err(e) => {
+            tracing::error!("Failed to create TCP listener: {}", e);
+            return Err(Error::new(
+                ErrorKind::ConnectionAborted,
+                "Failed to create TCP listener",
+            ));
+        }
+    };
 
     Ok(())
 }

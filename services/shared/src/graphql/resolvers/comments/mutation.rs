@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::graphql::schemas::comments::Comment;
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
+use hyper::StatusCode;
 use lib::{
     integration::foreign_key::add_foreign_key_if_not_exists,
     middleware::auth::graphql::check_auth_from_acl,
@@ -89,17 +90,22 @@ impl CommentMutation {
                 .await
                 .map_err(|e| {
                     tracing::error!("DB Query Error: {}", e);
-                    ExtendedError::new("Comment not posted", Some(400.to_string())).build()
+                    ExtendedError::new("Comment not posted", Some(StatusCode::BAD_REQUEST.as_u16()))
+                        .build()
                 })?;
 
             let response: Vec<Comment> = post_comment_transaction.take(0).map_err(|e| {
                 tracing::error!("Deserialization Error: {}", e);
-                ExtendedError::new("Rating not created", Some(400.to_string())).build()
+                ExtendedError::new("Rating not created", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build()
             })?;
 
             Ok(response)
         } else {
-            Err(ExtendedError::new("Not Authorized!", Some(403.to_string())).build())
+            Err(
+                ExtendedError::new("Invalid Request!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 
@@ -127,7 +133,12 @@ impl CommentMutation {
                 .await;
 
         if user_id_added.is_none() {
-            return Err(ExtendedError::new("Failed to add user_id", Some(500.to_string())).build());
+            tracing::error!("Invalid user id!");
+            return Err(ExtendedError::new(
+                "Something went wrong!",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build());
         }
 
         let mut database_transaction = db

@@ -9,7 +9,10 @@ use crate::{
 };
 use async_graphql::{Context, Error, Object, Result};
 use axum::{http::HeaderMap, Extension};
-use hyper::header::{AUTHORIZATION, COOKIE};
+use hyper::{
+    header::{AUTHORIZATION, COOKIE},
+    StatusCode,
+};
 use lib::{
     integration::{
         foreign_key::add_foreign_key_if_not_exists,
@@ -125,7 +128,7 @@ impl OrderMutation {
                         tracing::error!("Failed to connect to ACL service: {}", e);
                         ExtendedError::new(
                             "Failed to connect to ACL service",
-                            Some(500.to_string()),
+                            Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
                         )
                         .build()
                     })?;
@@ -167,7 +170,7 @@ impl OrderMutation {
                                     tracing::error!("Failed to connect to Payments service: {}", e);
                                     ExtendedError::new(
                                         "Failed to connect to Payments service",
-                                        Some(400.to_string()),
+                                        Some(StatusCode::SERVICE_UNAVAILABLE.as_u16()),
                                     )
                                     .build()
                                 })?;
@@ -177,26 +180,39 @@ impl OrderMutation {
                                 .await
                             {
                                 Ok(payment_link) => Ok(payment_link.into_inner().authorization_url),
-                                Err(e) => Err(ExtendedError::new(
-                                    format!("Error getting payment link! {:?}", e),
-                                    Some(400.to_string()),
-                                )
-                                .build()),
+                                Err(e) => {
+                                    tracing::error!("Error getting payment link! {:?}", e);
+                                    Err(ExtendedError::new(
+                                        "Could not complete order.",
+                                        Some(StatusCode::BAD_REQUEST.as_u16()),
+                                    )
+                                    .build())
+                                }
                             }
                         }
-                        Err(e) => Err(ExtendedError::new(
-                            format!("User not found! {:?}", e),
-                            Some(400.to_string()),
-                        )
-                        .build()),
+                        Err(e) => {
+                            tracing::error!("User not found! {:?}", e);
+                            Err(ExtendedError::new(
+                                format!("User not found! {:?}", e),
+                                Some(StatusCode::NOT_FOUND.as_u16()),
+                            )
+                            .build())
+                        }
                     }
 
                     // Ok(response)
                 }
-                None => Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build()),
+                None => Err(ExtendedError::new(
+                    "Cart is empty!",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build()),
             }
         } else {
-            Err(ExtendedError::new("Invalid Request!", Some(400.to_string())).build())
+            Err(
+                ExtendedError::new("Invalid Request!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 
@@ -214,7 +230,10 @@ impl OrderMutation {
             let updated_order = update_order(db, order_id.as_str(), status).await?;
             Ok(updated_order)
         } else {
-            Err(ExtendedError::new("Cart is empty!", Some(400.to_string())).build())
+            Err(
+                ExtendedError::new("Cart is empty!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 }

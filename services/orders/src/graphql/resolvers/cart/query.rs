@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_graphql::{Context, Error, Object, Result};
 use axum::Extension;
-use hyper::HeaderMap;
+use hyper::{HeaderMap, StatusCode};
 use lib::utils::custom_error::ExtendedError;
 use surrealdb::{engine::remote::ws::Client, Surreal};
 
@@ -54,11 +54,16 @@ impl CartQuery {
 
             match response {
                 Some(cart) => Ok(cart.clone()),
-                None => Err(ExtendedError::new("Not found!", Some(404.to_string())).build()),
+                None => Err(
+                    ExtendedError::new("Not found!", Some(StatusCode::NOT_FOUND.as_u16())).build(),
+                ),
             }
             // Ok()
         } else {
-            Err(ExtendedError::new("Invalid Request!", Some(400.to_string())).build())
+            Err(
+                ExtendedError::new("Invalid Request!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 
@@ -87,7 +92,9 @@ impl CartQuery {
 
         match response {
             Some(total_sales) => Ok(total_sales),
-            None => Err(ExtendedError::new("Not found!", Some(404.to_string())).build()),
+            None => {
+                Err(ExtendedError::new("Not found!", Some(StatusCode::NOT_FOUND.as_u16())).build())
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::graphql::schemas::general::{Cart, CartOperation};
 use async_graphql::{Context, Object, Result};
 use axum::{http::HeaderMap, Extension};
-use hyper::header::{AUTHORIZATION, COOKIE, SET_COOKIE};
+use hyper::{header::SET_COOKIE, StatusCode};
 use lib::{
     integration::foreign_key::add_foreign_key_if_not_exists,
     middleware::auth::graphql::check_auth_from_acl,
@@ -19,22 +19,15 @@ struct UpdateCartArgs {
     pub cart: Cart,
     pub internal_product_sku_id: String,
     pub cart_operation: CartOperation,
-    // pub product_price: u64,
     pub db_ctx: Extension<Arc<Surreal<Client>>>,
-    // pub license_id: String,
-    // pub artifact: String,
 }
 
 #[derive(Debug)]
 struct NewCartArgs {
     pub internal_product_sku_id: String,
-    // pub product_price: u64,
     pub internal_user_id: Option<String>,
     pub db_ctx: Extension<Arc<Surreal<Client>>>,
     pub session_id: String,
-    // pub license_id: String,
-    // pub artifact: String,
-    // pub license_price_factor: u64,
 }
 
 #[derive(Default)]
@@ -48,7 +41,6 @@ impl CartMutation {
         ctx: &Context<'_>,
         external_product_sku_id: String,
         cart_operation: CartOperation,
-        // external_license_id: String,
     ) -> Result<Cart> {
         let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
 
@@ -61,22 +53,11 @@ impl CartMutation {
                 foreign_key: external_product_sku_id.clone(),
             };
 
-            // let license_fk_body = ForeignKey {
-            //     table: "license_id".into(),
-            //     column: "license_id".into(),
-            //     foreign_key: external_license_id.clone(),
-            // };
-
             let product_sku_fk = add_foreign_key_if_not_exists::<
                 Extension<Arc<Surreal<Client>>>,
                 ProductSku,
             >(db, product_sku_fk_body)
             .await;
-            // let license_fk = add_foreign_key_if_not_exists::<
-            //     Extension<Arc<Surreal<Client>>>,
-            //     License,
-            // >(db, license_fk_body)
-            // .await;
 
             let internal_product_sku_id = product_sku_fk
                 .unwrap()
@@ -85,17 +66,9 @@ impl CartMutation {
                 .map(|t| &t.id)
                 .expect("id")
                 .to_raw();
-            // let internal_license_id = license_fk
-            //     .as_ref()
-            //     .unwrap()
-            //     .id
-            //     .as_ref()
-            //     .map(|t| &t.id)
-            //     .expect("id")
-            //     .to_raw();
 
-            let auth_header = headers.get(AUTHORIZATION);
-            let cookie_header = headers.get(COOKIE);
+            // let auth_header = headers.get(AUTHORIZATION);
+            // let cookie_header = headers.get(COOKIE);
 
             match check_auth_from_acl(headers).await {
                 Ok(auth_status) => {
@@ -127,13 +100,17 @@ impl CartMutation {
                         .await
                         .map_err(|e| {
                             tracing::error!("Error retrieving existing cart: {:?}", e);
-                            ExtendedError::new("Failed to add to cart!", Some(400.to_string()))
+                            ExtendedError::new("Failed to add to cart!", Some(StatusCode::BAD_REQUEST.as_u16()))
                                 .build()
                         })?;
 
                     let existing_cart: Option<Cart> = existing_cart_query.take(0).map_err(|e| {
                         tracing::error!("(Deserialization)Error retrieving existing cart: {:?}", e);
-                        ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+                        ExtendedError::new(
+                            "Failed to add to cart!",
+                            Some(StatusCode::BAD_REQUEST.as_u16()),
+                        )
+                        .build()
                     })?;
 
                     match existing_cart {
@@ -142,10 +119,7 @@ impl CartMutation {
                                 cart: cart.clone(),
                                 internal_product_sku_id,
                                 cart_operation,
-                                // product_price,
                                 db_ctx: db.clone(),
-                                // license_id: internal_license_id,
-                                // artifact: product_artifact,
                             };
 
                             let updated_cart = update_existing_cart(update_args).await;
@@ -159,19 +133,18 @@ impl CartMutation {
                         None => {
                             let new_cart_args = NewCartArgs {
                                 internal_product_sku_id,
-                                // product_price,
                                 internal_user_id: Some(internal_user_id),
                                 db_ctx: db.clone(),
                                 session_id: session_id.clone(),
-                                // license_id: internal_license_id,
-                                // artifact: product_artifact,
-                                // license_price_factor,
                             };
 
                             let new_cart = create_new_cart(new_cart_args).await.map_err(|e| {
                                 tracing::error!("Error creating new cart: {:?}", e);
-                                ExtendedError::new("Failed to add to cart!", Some(400.to_string()))
-                                    .build()
+                                ExtendedError::new(
+                                    "Failed to add to cart!",
+                                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                                )
+                                .build()
                             });
 
                             new_cart
@@ -186,12 +159,16 @@ impl CartMutation {
                         .await
                         .map_err(|e| {
                             tracing::error!("DB Query Error: {}", e);
-                            ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+                            ExtendedError::new("Failed to add to cart!", Some(StatusCode::BAD_REQUEST.as_u16())).build()
                         })?;
 
                     let existing_cart: Option<Cart> = existing_cart_query.take(0).map_err(|e| {
                         tracing::error!("Deserialization Error: {}", e);
-                        ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+                        ExtendedError::new(
+                            "Failed to add to cart!",
+                            Some(StatusCode::BAD_REQUEST.as_u16()),
+                        )
+                        .build()
                     })?;
 
                     match existing_cart {
@@ -200,10 +177,7 @@ impl CartMutation {
                                 cart: cart.clone(),
                                 internal_product_sku_id,
                                 cart_operation,
-                                // product_price,
                                 db_ctx: db.clone(),
-                                // license_id: internal_license_id,
-                                // artifact: product_artifact,
                             };
 
                             let updated_cart = update_existing_cart(update_args).await;
@@ -217,13 +191,9 @@ impl CartMutation {
                         None => {
                             let new_cart_args = NewCartArgs {
                                 internal_product_sku_id,
-                                // product_price,
                                 internal_user_id: None,
                                 db_ctx: db.clone(),
                                 session_id: session_id.clone(),
-                                // license_id: internal_license_id,
-                                // artifact: product_artifact,
-                                // license_price_factor,
                             };
 
                             let new_cart = create_new_cart(new_cart_args).await;
@@ -238,7 +208,10 @@ impl CartMutation {
                 }
             }
         } else {
-            Err(ExtendedError::new("Invalid Request!", Some(400.to_string())).build())
+            Err(
+                ExtendedError::new("Invalid Request!", Some(StatusCode::BAD_REQUEST.as_u16()))
+                    .build(),
+            )
         }
     }
 }
@@ -268,20 +241,21 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
                 COMMIT TRANSACTION;
                 ",
                 )
-                // .bind(("product_price", args.product_price))
                 .bind(("internal_product_sku_id", args.internal_product_sku_id))
                 .bind(("cart_id", cart_id_raw))
-                // .bind(("license_id", format!("license:{}", args.license_id)))
-                // .bind(("artifact", args.artifact))
                 .await
                 .map_err(|e| {
                     tracing::error!("DB Query Error: {}", e);
-                    ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+                    ExtendedError::new("Failed to add to cart!", Some(StatusCode::BAD_REQUEST.as_u16())).build()
                 })?;
 
             let response: Vec<Cart> = update_cart_transaction.take(0).map_err(|e| {
                 tracing::error!("Deserialization Error: {}", e);
-                ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+                ExtendedError::new(
+                    "Failed to add to cart!",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build()
             })?;
             Ok(response.first().unwrap().to_owned())
         }
@@ -302,19 +276,21 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
                 COMMIT TRANSACTION;
                 ",
                 )
-                // .bind(("product_price", args.product_price))
                 .bind(("internal_product_sku_id", args.internal_product_sku_id))
                 .bind(("cart_id", cart_id_raw))
-                // .bind(("license_id", format!("license:{}", args.license_id)))
                 .await
                 .map_err(|e| {
                     tracing::error!("DB Query Error: {}", e);
-                    ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+                    ExtendedError::new("Failed to add to cart!", Some(StatusCode::BAD_REQUEST.as_u16())).build()
                 })?;
 
             let response: Vec<Cart> = update_cart_transaction.take(0).map_err(|e| {
                 tracing::error!("Deserialization Error: {}", e);
-                ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+                ExtendedError::new(
+                    "Failed to add to cart!",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build()
             })?;
             Ok(response.first().unwrap().to_owned())
         }
@@ -349,23 +325,22 @@ async fn create_new_cart(args: NewCartArgs) -> Result<Cart> {
             COMMIT TRANSACTION;
         ",
         )
-        // .bind(("cart_product_details", cart_product_details))
-        // .bind(("license_price_factor", args.license_price_factor))
-        // .bind(("product_price", args.product_price))
         .bind(("internal_product_sku_id", args.internal_product_sku_id))
         .bind(("user", args.internal_user_id))
         .bind(("session_id", args.session_id))
-        // .bind(("license_id", format!("license_id:{}", args.license_id)))
-        // .bind(("artifact", args.artifact))
         .await
         .map_err(|e| {
             tracing::error!("(create_cart_transaction)DB Query Error: {}", e);
-            ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+            ExtendedError::new("Failed to add to cart!", Some(StatusCode::BAD_REQUEST.as_u16())).build()
         })?;
 
     let response: Vec<Cart> = create_cart_transaction.take(0).map_err(|e| {
         tracing::error!("(create_cart_transaction)Deserialization Error: {}", e);
-        ExtendedError::new("Failed to add to cart!", Some(400.to_string())).build()
+        ExtendedError::new(
+            "Failed to add to cart!",
+            Some(StatusCode::BAD_REQUEST.as_u16()),
+        )
+        .build()
     })?;
 
     Ok(response.first().unwrap().to_owned())
@@ -414,12 +389,16 @@ pub async fn claim_cart(
         .await
         .map_err(|e| {
             tracing::error!("DB Query Error: {}", e);
-            ExtendedError::new("Failed to claim cart!", Some(400.to_string())).build()
+            ExtendedError::new("Failed to claim cart!", Some(StatusCode::BAD_REQUEST.as_u16())).build()
         })?;
 
     let existing_cart: Option<Cart> = existing_cart_query.take(0).map_err(|e| {
         tracing::error!("Deserialization Error: {}", e);
-        ExtendedError::new("Failed to claim cart!", Some(400.to_string())).build()
+        ExtendedError::new(
+            "Failed to claim cart!",
+            Some(StatusCode::BAD_REQUEST.as_u16()),
+        )
+        .build()
     })?;
 
     Ok(existing_cart)
