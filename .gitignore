@@ -10,3 +10,4 @@ copy-from-server.sh
 /mosquitto/config/pwfile
 /mosquitto/data
 /mosquitto/log
+/lib/src/integration/grpc/out
