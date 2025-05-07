@@ -2,29 +2,29 @@ use crate::utils;
 
 // should match the package name in the .proto file
 pub mod acl_service {
-    tonic::include_proto!("acl");
+    include!("out/acl.rs");
 }
 
 // should match the package name in the .proto file
 pub mod email_service {
-    tonic::include_proto!("email");
+    include!("out/email.rs");
 }
 
 // should match the package name in the .proto file
 pub mod files_service {
-    tonic::include_proto!("files");
+    include!("out/files.rs");
 }
 
 pub mod products_service {
-    tonic::include_proto!("products");
+    include!("out/products.rs");
 }
 
 pub mod orders_service {
-    tonic::include_proto!("orders");
+    include!("out/orders.rs");
 }
 
 pub mod payments_service {
-    tonic::include_proto!("payments");
+    include!("out/payments.rs");
 }
 
 impl From<payments_service::UserPaymentDetails> for utils::models::UserPaymentDetails {
