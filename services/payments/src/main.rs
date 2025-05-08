@@ -37,7 +37,7 @@ use lib::{
 };
 use rest::handlers::handle_paystack_webhook;
 // use serde::Deserialize;
-use dotenvy::dotenv;
+// use dotenvy::dotenv;
 use rumqttc::v5::AsyncClient;
 use surrealdb::{engine::remote::ws::Client, Surreal};
 use tokio::task;

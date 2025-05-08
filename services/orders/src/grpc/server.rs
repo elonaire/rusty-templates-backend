@@ -26,7 +26,7 @@ impl OrdersService for OrdersServiceImplementation {
         request: Request<UpdateOrderPayload>,
     ) -> Result<Response<UpdateOrderResponse>, Status> {
         let req_clone = request.extensions().clone();
-        let current_user = req_clone.get::<String>().unwrap();
+        let _current_user = req_clone.get::<String>().unwrap();
         let payload = request.into_inner();
         let status = payload
             .status
