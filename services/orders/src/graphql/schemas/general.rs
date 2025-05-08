@@ -3,20 +3,11 @@ use hyper::{
     header::{AUTHORIZATION, COOKIE},
     HeaderMap,
 };
-use lib::utils::{
-    self,
-    grpc::{create_grpc_client, AuthMetaData},
-    models::OrderStatus,
-};
+use lib::utils::{grpc::create_grpc_client, models::OrderStatus};
 use serde::{Deserialize, Serialize};
 use surrealdb::sql::Thing;
 
-use lib::integration::grpc::clients::{
-    acl_service::{acl_client::AclClient, Empty},
-    products_service::{
-        products_service_client::ProductsServiceClient, ProductSkuIds, ProductSkuPrices,
-    },
-};
+use lib::integration::grpc::clients::acl_service::{acl_client::AclClient, Empty};
 use tonic::transport::Channel;
 
 use crate::utils::cart::calculate_cart_total_amount;
