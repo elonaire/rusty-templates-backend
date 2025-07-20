@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use crate::{
     graphql::{
@@ -117,11 +117,14 @@ impl OrderMutation {
                         constructed_grpc_request: Some(&mut request),
                     };
 
+                    let acl_service_grpc = env::var("OAUTH_SERVICE_GRPC")
+                        .expect("Missing the OAUTH_SERVICE_GRPC environment variable.");
+
                     let mut acl_grpc_client = create_grpc_client::<
                         GetUserEmailRequest,
                         AclClient<Channel>,
                     >(
-                        "http://[::1]:50051", true, Some(auth_metadata)
+                        &acl_service_grpc, true, Some(auth_metadata)
                     )
                     .await
                     .map_err(|e| {
@@ -158,12 +161,15 @@ impl OrderMutation {
                                 constructed_grpc_request: Some(&mut request),
                             };
 
+                            let payments_service_grpc = env::var("PAYMENTS_SERVICE_GRPC")
+                                .expect("Missing the PAYMENTS_SERVICE_GRPC environment variable.");
+
                             let mut payments_grpc_client =
                                 create_grpc_client::<
                                     UserPaymentDetails,
                                     PaymentsServiceClient<Channel>,
                                 >(
-                                    "http://[::1]:50056", true, Some(auth_metadata)
+                                    &payments_service_grpc, true, Some(auth_metadata)
                                 )
                                 .await
                                 .map_err(|e| {

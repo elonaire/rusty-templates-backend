@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use crate::graphql::schemas::general::{
     License, Product, ProductInput, ProductSku, ProductSkuInput, UpdateLicenseInput,
@@ -136,8 +136,11 @@ impl ProductMutation {
                 constructed_grpc_request: Some(&mut request),
             };
 
+            let files_service_grpc = env::var("FILES_SERVICE_GRPC")
+                .expect("Missing the FILES_SERVICE_GRPC environment variable.");
+
             let mut files_grpc_client = create_grpc_client::<FileId, FilesServiceClient<Channel>>(
-                "http://[::1]:50053",
+                &files_service_grpc,
                 true,
                 Some(auth_metadata),
             )

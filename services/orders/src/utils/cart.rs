@@ -1,4 +1,7 @@
-use std::io::{Error, ErrorKind};
+use std::{
+    env,
+    io::{Error, ErrorKind},
+};
 
 use lib::{
     integration::grpc::clients::products_service::{
@@ -36,10 +39,13 @@ pub async fn calculate_cart_total_amount(
         constructed_grpc_request: Some(&mut request),
     };
 
+    let products_service_grpc = env::var("PRODUCTS_SERVICE_GRPC")
+        .expect("Missing the PRODUCTS_SERVICE_GRPC environment variable.");
+
     if let Ok(mut products_grpc_client) = create_grpc_client::<
         ProductSkuIds,
         ProductsServiceClient<Channel>,
-    >("http://[::1]:50054", true, Some(auth_metadata))
+    >(&products_service_grpc, true, Some(auth_metadata))
     .await
     .map_err(|e| {
         tracing::error!("Failed to connect to Products service: {}", e);

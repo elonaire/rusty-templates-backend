@@ -1,3 +1,5 @@
+use std::env;
+
 use async_graphql::{ComplexObject, Enum, Error, SimpleObject};
 use hyper::{
     header::{AUTHORIZATION, COOKIE},
@@ -53,8 +55,11 @@ impl Cart {
         // Internal sign in logic using gRPC
         let request = tonic::Request::new(Empty {});
 
+        let acl_service_grpc = env::var("OAUTH_SERVICE_GRPC")
+            .expect("Missing the OAUTH_SERVICE_GRPC environment variable.");
+
         if let Ok(mut acl_grpc_client) =
-            create_grpc_client::<Empty, AclClient<Channel>>("http://[::1]:50051", false, None)
+            create_grpc_client::<Empty, AclClient<Channel>>(&acl_service_grpc, false, None)
                 .await
                 .map_err(|e| {
                     tracing::error!("Failed to connect to ACL service: {}", e);

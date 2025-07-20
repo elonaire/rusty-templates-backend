@@ -97,11 +97,14 @@ pub async fn handle_paystack_webhook(
                         // Internal sign in logic using gRPC
                         let request = tonic::Request::new(Empty {});
 
+                        let acl_service_grpc = env::var("OAUTH_SERVICE_GRPC")
+                            .expect("Missing the OAUTH_SERVICE_GRPC environment variable.");
+
                         if let Ok(mut acl_grpc_client) = create_grpc_client::<
                             Empty,
                             AclClient<Channel>,
                         >(
-                            "http://[::1]:50051", false, None
+                            &acl_service_grpc, false, None
                         )
                         .await
                         .map_err(|e| {
@@ -148,12 +151,16 @@ pub async fn handle_paystack_webhook(
                                         constructed_grpc_request: Some(&mut request),
                                     };
 
+                                let orders_service_grpc = env::var("ORDERS_SERVICE_GRPC").expect(
+                                    "Missing the ORDERS_SERVICE_GRPC environment variable.",
+                                );
+
                                 // give ownership rights to artifacts
                                 if let Ok(mut orders_grpc_client) = create_grpc_client::<
                                     GetAllArtifactsForOrderPayload,
                                     OrdersServiceClient<Channel>,
                                 >(
-                                    "http://[::1]:50055", true, Some(auth_metadata)
+                                    &orders_service_grpc, true, Some(auth_metadata)
                                 )
                                 .await
                                 .map_err(|e| {
@@ -191,11 +198,14 @@ pub async fn handle_paystack_webhook(
                                                     constructed_grpc_request: Some(&mut request),
                                                 };
 
+                                            let files_service_grpc = env::var("FILES_SERVICE_GRPC")
+                                                .expect("Missing the FILES_SERVICE_GRPC environment variable.");
+
                                             if let Ok(mut files_service_grpc_client) = create_grpc_client::<
                                                 PurchaseFileDetails,
                                                 FilesServiceClient<Channel>,
                                             >(
-                                                "http://[::1]:50053", true, Some(auth_metadata)
+                                                &files_service_grpc, true, Some(auth_metadata)
                                             )
                                             .await
                                             .map_err(|e| {
@@ -283,9 +293,13 @@ pub async fn handle_paystack_webhook(
                                         constructed_grpc_request: Some(&mut request),
                                     };
 
+                                    let email_service_grpc = env::var("EMAIL_SERVICE_GRPC").expect(
+                                        "Missing the EMAIL_SERVICE_GRPC environment variable.",
+                                    );
+
                                     if let Ok(mut email_service_grpc_client) =
                                         create_grpc_client::<TonicEmail, EmailServiceClient<Channel>>(
-                                            "http://[::1]:50052",
+                                            &email_service_grpc,
                                             true,
                                             Some(auth_metadata),
                                         )
