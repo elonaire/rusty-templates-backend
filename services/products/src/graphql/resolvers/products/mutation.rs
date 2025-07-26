@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use crate::graphql::schemas::general::{
     License, Product, ProductInput, ProductSku, ProductSkuInput, UpdateLicenseInput,
@@ -35,7 +35,14 @@ impl ProductMutation {
         ctx: &Context<'_>,
         mut product: ProductInput,
     ) -> Result<Product> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let auth_status = check_auth_from_acl(headers).await?;
@@ -118,7 +125,14 @@ impl ProductMutation {
         ctx: &Context<'_>,
         product_sku_input: ProductSkuInput,
     ) -> Result<ProductSku> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let auth_status = check_auth_from_acl(headers).await?;
@@ -136,15 +150,31 @@ impl ProductMutation {
                 constructed_grpc_request: Some(&mut request),
             };
 
+            let files_service_grpc = env::var("FILES_SERVICE_GRPC").map_err(|e| {
+                tracing::error!(
+                    "Missing the FILES_SERVICE_GRPC environment variable.: {}",
+                    e
+                );
+                ExtendedError::new(
+                    "Server Error",
+                    Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+                )
+                .build()
+            })?;
+
             let mut files_grpc_client = create_grpc_client::<FileId, FilesServiceClient<Channel>>(
-                "http://[::1]:50053",
+                &files_service_grpc,
                 true,
                 Some(auth_metadata),
             )
             .await
             .map_err(|e| {
                 tracing::error!("Failed to connect to Files service: {}", e);
-                Error::new("Failed to connect to Files service".to_string())
+                ExtendedError::new(
+                    "Service Unavailable",
+                    Some(StatusCode::SERVICE_UNAVAILABLE.as_u16()),
+                )
+                .build()
             })?;
 
             let _res = files_grpc_client.get_file_name(request).await?;
@@ -173,6 +203,15 @@ impl ProductMutation {
                 UploadedFile,
             >(db, file_fk_body)
             .await;
+
+            if internal_file.is_none() {
+                tracing::error!("Invalid internal file.");
+                return Err(ExtendedError::new(
+                    "Bad Request!",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build());
+            }
 
             let mut product_sku_query = db
                 .query(
@@ -244,7 +283,15 @@ impl ProductMutation {
         license_updates: UpdateLicenseInput,
         license_id: String,
     ) -> Result<License> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
+
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let _auth_res_from_acl = check_auth_from_acl(headers).await?;
 

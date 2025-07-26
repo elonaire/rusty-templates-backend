@@ -24,7 +24,14 @@ impl OrderQuery {
         ctx: &Context<'_>,
         cart_id: String,
     ) -> Result<Vec<CartProduct>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let mut cart_products_query = db
         .query(
@@ -52,7 +59,14 @@ impl OrderQuery {
         ctx: &Context<'_>,
         order_id: String,
     ) -> Result<ArtifactsPurchaseDetails> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let _auth_status = check_auth_from_acl(headers).await?;
@@ -72,7 +86,14 @@ impl OrderQuery {
         ctx: &Context<'_>,
         status: OrderStatus,
     ) -> Result<Vec<CartProduct>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let auth_status = check_auth_from_acl(headers).await?;

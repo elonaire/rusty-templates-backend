@@ -25,7 +25,14 @@ impl CommentMutation {
         comment: Comment,
         product_id: String,
     ) -> Result<Vec<Comment>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let auth_status = check_auth_from_acl(&headers).await?;
@@ -45,11 +52,30 @@ impl CommentMutation {
             let author_result =
                 add_foreign_key_if_not_exists::<Extension<Arc<Surreal<Client>>>, User>(db, user_fk)
                     .await;
+
+            if author_result.is_none() {
+                tracing::error!("Unauthorized!");
+                return Err(ExtendedError::new(
+                    "Unauthorized!",
+                    Some(StatusCode::UNAUTHORIZED.as_u16()),
+                )
+                .build());
+            }
+
             let commented_product_result = add_foreign_key_if_not_exists::<
                 Extension<Arc<Surreal<Client>>>,
                 Product,
             >(db, product_fk)
             .await;
+
+            if commented_product_result.is_none() {
+                tracing::error!("Bad Request");
+                return Err(ExtendedError::new(
+                    "Bad Request",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build());
+            }
 
             let mut post_comment_transaction = db
                 .query(
@@ -116,9 +142,23 @@ impl CommentMutation {
         comment: Comment,
         comment_id: String,
     ) -> async_graphql::Result<Vec<Comment>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
-        let headers = ctx.data::<HeaderMap>().unwrap();
+        let headers = ctx.data::<HeaderMap>().map_err(|e| {
+            tracing::error!("Error extracting Headers: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let auth_res_from_acl = check_auth_from_acl(headers).await?;
 

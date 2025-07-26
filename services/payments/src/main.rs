@@ -122,8 +122,7 @@ async fn main() -> Result<(), Error> {
     let origins: Vec<HeaderValue> = allowed_services_cors
         .as_str()
         .split(",")
-        .into_iter()
-        .map(|endpoint| endpoint.parse::<HeaderValue>().unwrap())
+        .filter_map(|endpoint| endpoint.trim().parse::<HeaderValue>().ok())
         .collect();
 
     // Persist the server logs to a file on a daily basis using "tracing_subscriber"
@@ -137,7 +136,7 @@ async fn main() -> Result<(), Error> {
         .with_writer(stdout.and(non_blocking))
         .init();
 
-    let (client, mut eventloop) = MqttClient::new("payments-service", "localhost", 1883).await;
+    let (client, mut eventloop) = MqttClient::new("payments-service", "localhost", 1883).await?;
 
     task::spawn(async move { while let Ok(_event) = eventloop.poll().await {} });
 
@@ -173,10 +172,10 @@ async fn main() -> Result<(), Error> {
 
     // Set up the gRPC server
     let payments_grpc = PaymentsServiceImplementation::new(db.clone());
-    let grpc_address: SocketAddr = format!("[::1]:{}", payments_grpc_port)
+    let grpc_address: SocketAddr = format!("0.0.0.0:{}", payments_grpc_port)
         .as_str()
         .parse()
-        .unwrap();
+        .expect("The gRPC address must be set");
     let tonic_auth_middleware = AuthMiddleware::default();
 
     tokio::spawn(async move {

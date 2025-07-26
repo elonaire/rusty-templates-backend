@@ -25,13 +25,16 @@ impl OrdersService for OrdersServiceImplementation {
         &self,
         request: Request<UpdateOrderPayload>,
     ) -> Result<Response<UpdateOrderResponse>, Status> {
-        let req_clone = request.extensions().clone();
-        let _current_user = req_clone.get::<String>().unwrap();
+        // let req_clone = request.extensions().clone();
+        // let current_user = req_clone.get::<String>();
+
+        // if current_user.is_none() {}
+
         let payload = request.into_inner();
-        let status = payload
-            .status
-            .try_into()
-            .map_err(|_| Status::invalid_argument("Invalid status"))?;
+        let status = payload.status.try_into().map_err(|e| {
+            tracing::error!("Invalid status: {:?}", e);
+            Status::invalid_argument("Invalid status")
+        })?;
 
         tracing::debug!("status: {:?}", status);
 

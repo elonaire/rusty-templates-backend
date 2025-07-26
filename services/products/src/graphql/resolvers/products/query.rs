@@ -17,7 +17,14 @@ pub struct ProductQuery;
 #[Object]
 impl ProductQuery {
     async fn fetch_product_price(&self, ctx: &Context<'_>, product_id: String) -> Result<u64> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let response = get_product_price(db, product_id.as_str()).await?;
 
@@ -25,7 +32,14 @@ impl ProductQuery {
     }
 
     async fn fetch_products(&self, ctx: &Context<'_>) -> Result<Vec<Product>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let products: Vec<Product> = db
             .select("product")
@@ -40,7 +54,14 @@ impl ProductQuery {
         ctx: &Context<'_>,
         product_ids: Vec<String>,
     ) -> Result<Vec<Product>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let records = product_ids
             .iter()
@@ -73,7 +94,14 @@ impl ProductQuery {
     }
 
     async fn fetch_product_by_slug(&self, ctx: &Context<'_>, slug: String) -> Result<Product> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let mut query_response = db
             .query(
@@ -102,7 +130,14 @@ impl ProductQuery {
         ctx: &Context<'_>,
         product_sku_id: String,
     ) -> Result<String> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let response = get_product_sku_artifact(db, product_sku_id.as_str()).await?;
 
@@ -114,7 +149,14 @@ impl ProductQuery {
         ctx: &Context<'_>,
         license_id: String,
     ) -> Result<u64> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let response = get_license_price_factor(db, license_id.as_str()).await?;
 
@@ -122,7 +164,14 @@ impl ProductQuery {
     }
 
     async fn fetch_licenses(&self, ctx: &Context<'_>) -> Result<Vec<License>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let mut external_product_ids_query = db
             .query(

@@ -14,9 +14,14 @@ pub async fn initiate_payment_integration(
     let client = ReqWestClient::builder()
         .danger_accept_invalid_certs(true)
         .build()
-        .unwrap();
-    let paystack_secret =
-        env::var("PAYSTACK_SECRET").expect("Missing the PAYSTACK_SECRET environment variable.");
+        .map_err(|e| {
+            tracing::error!("Failed to build Reqwest Client: {}", e);
+            Error::new(ErrorKind::Other, "Internal server error")
+        })?;
+    let paystack_secret = env::var("PAYSTACK_SECRET").map_err(|e| {
+        tracing::error!("Missing the PAYSTACK_SECRET environment variable.: {}", e);
+        Error::new(ErrorKind::Other, "Internal server error")
+    })?;
 
     let mut req_headers = ReqWestHeaderMap::new();
     req_headers.insert(
@@ -24,10 +29,19 @@ pub async fn initiate_payment_integration(
         format!("Bearer {}", paystack_secret)
             .as_str()
             .parse()
-            .unwrap(),
+            .map_err(|e| {
+                tracing::error!("Failed to build parse str to HeaderValue: {}", e);
+                Error::new(ErrorKind::Other, "Unauthorized!")
+            })?,
     );
 
-    req_headers.append("Cache-Control", "no-cache".parse().unwrap());
+    req_headers.append(
+        "Cache-Control",
+        "no-cache".parse().map_err(|e| {
+            tracing::error!("Failed to build parse str to HeaderValue: {}", e);
+            Error::new(ErrorKind::Other, "Unauthorized!")
+        })?,
+    );
 
     // let forex_secret_key = env::var("EXCHANGE_RATES_API_KEY")
     //                 .expect("Missing the EXCHANGE_RATES_API_KEY environment variable.");

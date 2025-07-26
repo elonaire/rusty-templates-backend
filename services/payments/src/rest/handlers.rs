@@ -1,6 +1,6 @@
 use axum::{
     extract::{Extension, Json},
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
 };
 use hex;
@@ -48,7 +48,14 @@ pub async fn handle_paystack_webhook(
         .unwrap_or("");
 
     // Get the secret key
-    let secret = env::var("PAYSTACK_SECRET").expect("PAYSTACK_SECRET must be set");
+    let secret = env::var("PAYSTACK_SECRET");
+
+    if let Err(e) = secret {
+        tracing::error!("Missing the PAYSTACK_SECRET environment variable.: {}", e);
+        return (StatusCode::INTERNAL_SERVER_ERROR, "Server Error").into_response();
+    }
+    let secret = secret.unwrap();
+
     let deployment_env = env::var("ENVIRONMENT").unwrap_or_else(|_| "prod".to_string()); // default to production because it's the most secure
 
     // Verify the webhook payload
@@ -66,11 +73,6 @@ pub async fn handle_paystack_webhook(
         "prod" => hash == signature,
         _ => true,
     };
-
-    tracing::debug!(
-        "paystack_signature_is_valid: {:?}",
-        paystack_signature_is_valid
-    );
 
     if paystack_signature_is_valid {
         // HMAC validation passed
@@ -97,25 +99,50 @@ pub async fn handle_paystack_webhook(
                         // Internal sign in logic using gRPC
                         let request = tonic::Request::new(Empty {});
 
+                        let acl_service_grpc = env::var("OAUTH_SERVICE_GRPC");
+
+                        if let Err(e) = acl_service_grpc {
+                            tracing::error!(
+                                "Failed to get OAUTH_SERVICE_GRPC environment variable: {}",
+                                e
+                            );
+                            return (StatusCode::INTERNAL_SERVER_ERROR, "Server Error.")
+                                .into_response();
+                        }
+
+                        let acl_service_grpc = acl_service_grpc.unwrap();
+
                         if let Ok(mut acl_grpc_client) = create_grpc_client::<
                             Empty,
                             AclClient<Channel>,
                         >(
-                            "http://[::1]:50051", false, None
+                            &acl_service_grpc, false, None
                         )
                         .await
                         .map_err(|e| {
                             tracing::error!("Failed to connect to ACL service: {}", e);
-                            (
-                                StatusCode::NOT_FOUND,
-                                format!("Transaction successful but could not reach ACL service."),
+                            return (
+                                StatusCode::SERVICE_UNAVAILABLE,
+                                "Transaction successful but failed to authenticate request.",
                             )
-                                .into_response()
+                                .into_response();
                         }) {
                             if let Ok(auth_res) = acl_grpc_client.sign_in_as_service(request).await
                             {
                                 let mut header_map = HeaderMap::new();
                                 let internal_jwt = auth_res.into_inner().token;
+
+                                if internal_jwt.as_str().parse::<HeaderValue>().is_err() {
+                                    tracing::error!("Failed to parse str to HeaderValue");
+                                    return (
+                                                StatusCode::NOT_FOUND,
+                                                format!(
+                                                "Transaction successful but could not reach Orders service!"
+                                            ),
+                                            )
+                                                .into_response();
+                                }
+
                                 header_map.insert(
                                     AUTHORIZATION,
                                     format!("Bearer {}", &internal_jwt)
@@ -148,12 +175,22 @@ pub async fn handle_paystack_webhook(
                                         constructed_grpc_request: Some(&mut request),
                                     };
 
+                                let orders_service_grpc = env::var("ORDERS_SERVICE_GRPC");
+
+                                if let Err(e) = orders_service_grpc {
+                                    tracing::error!("Failed to get ORDERS_SERVICE_GRPC environment variable: {}", e);
+                                    return (StatusCode::INTERNAL_SERVER_ERROR, "Server Error.")
+                                        .into_response();
+                                }
+
+                                let orders_service_grpc = orders_service_grpc.unwrap();
+
                                 // give ownership rights to artifacts
                                 if let Ok(mut orders_grpc_client) = create_grpc_client::<
                                     GetAllArtifactsForOrderPayload,
                                     OrdersServiceClient<Channel>,
                                 >(
-                                    "http://[::1]:50055", true, Some(auth_metadata)
+                                    &orders_service_grpc, true, Some(auth_metadata)
                                 )
                                 .await
                                 .map_err(|e| {
@@ -191,11 +228,22 @@ pub async fn handle_paystack_webhook(
                                                     constructed_grpc_request: Some(&mut request),
                                                 };
 
+                                            let files_service_grpc = env::var("FILES_SERVICE_GRPC");
+
+                                            if let Err(e) = files_service_grpc {
+                                                tracing::error!("Failed to get FILES_SERVICE_GRPC environment variable: {}", e);
+                                                return (
+                                                       StatusCode::INTERNAL_SERVER_ERROR,
+                                                       "Server Error",
+                                                   )
+                                                       .into_response();
+                                            }
+
                                             if let Ok(mut files_service_grpc_client) = create_grpc_client::<
                                                 PurchaseFileDetails,
                                                 FilesServiceClient<Channel>,
                                             >(
-                                                "http://[::1]:50053", true, Some(auth_metadata)
+                                                &files_service_grpc.unwrap(), true, Some(auth_metadata)
                                             )
                                             .await
                                             .map_err(|e| {
@@ -283,9 +331,17 @@ pub async fn handle_paystack_webhook(
                                         constructed_grpc_request: Some(&mut request),
                                     };
 
+                                    let email_service_grpc = env::var("EMAIL_SERVICE_GRPC");
+
+                                    if let Err(e) = email_service_grpc {
+                                        tracing::error!("Failed to get EMAIL_SERVICE_GRPC: {}", e);
+                                        return (StatusCode::INTERNAL_SERVER_ERROR, "Server Error")
+                                            .into_response();
+                                    }
+
                                     if let Ok(mut email_service_grpc_client) =
                                         create_grpc_client::<TonicEmail, EmailServiceClient<Channel>>(
-                                            "http://[::1]:50052",
+                                            &email_service_grpc.unwrap(),
                                             true,
                                             Some(auth_metadata),
                                         )
