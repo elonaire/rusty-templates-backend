@@ -107,6 +107,8 @@ async fn main() -> Result<(), Error> {
         env::var("ORDERS_HTTP_PORT").expect("Missing the ORDERS_HTTP_PORT environment variable.");
     let orders_grpc_port =
         env::var("ORDERS_GRPC_PORT").expect("Missing the ORDERS_GRPC_PORT environment variable.");
+    let mqtt_host = env::var("MQ_HOST").expect("Missing the MQ_HOST environment variable.");
+    let mqtt_port = env::var("MQ_PORT").expect("Missing the MQ_PORT environment variable.");
 
     let mut schema_builder =
         Schema::build(Query::default(), Mutation::default(), EmptySubscription);
@@ -182,7 +184,8 @@ async fn main() -> Result<(), Error> {
             .ok();
     });
 
-    let (client, mut eventloop) = MqttClient::new("orders-service", "localhost", 1883).await?;
+    let (client, mut eventloop) =
+        MqttClient::new("orders-service", &mqtt_host, mqtt_port.parse().unwrap()).await?;
     client
         .subscribe("payment/successful", QoS::ExactlyOnce)
         .await
