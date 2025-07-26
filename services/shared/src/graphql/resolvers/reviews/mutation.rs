@@ -25,7 +25,14 @@ impl ReviewMutation {
         review: Review,
         product_id: String,
     ) -> Result<Vec<Review>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let auth_status = check_auth_from_acl(&headers).await?;
@@ -50,6 +57,14 @@ impl ReviewMutation {
                 Product,
             >(db, product_fk)
             .await;
+
+            if author_result.is_none() || rated_product_result.is_none() {
+                return Err(ExtendedError::new(
+                    "Server Error",
+                    Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+                )
+                .build());
+            }
 
             let mut review_product_transaction = db
                 .query(

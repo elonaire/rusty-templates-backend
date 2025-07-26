@@ -47,6 +47,12 @@ pub async fn update_order<T: Clone + AsSurrealClient>(
             };
 
             let buyer_result: Option<User> = add_foreign_key_if_not_exists(db, user_fk).await;
+
+            if buyer_result.is_none() {
+                tracing::error!("Buyer does not exist");
+                return Err(Error::new(ErrorKind::Other, "Unauthorized!"));
+            }
+
             let buyer_result_clone = buyer_result.clone();
             let internal_user_id = buyer_result_clone
                 .unwrap()

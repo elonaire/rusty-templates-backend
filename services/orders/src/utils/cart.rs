@@ -39,8 +39,14 @@ pub async fn calculate_cart_total_amount(
         constructed_grpc_request: Some(&mut request),
     };
 
-    let products_service_grpc = env::var("PRODUCTS_SERVICE_GRPC")
-        .expect("Missing the PRODUCTS_SERVICE_GRPC environment variable.");
+    let products_service_grpc = env::var("PRODUCTS_SERVICE_GRPC").map_err(|e| {
+        tracing::error!(
+            "Missing the PRODUCTS_SERVICE_GRPC environment variable.: {}",
+            e
+        );
+
+        Error::new(ErrorKind::Other, "Server Error")
+    })?;
 
     if let Ok(mut products_grpc_client) = create_grpc_client::<
         ProductSkuIds,
@@ -49,10 +55,7 @@ pub async fn calculate_cart_total_amount(
     .await
     .map_err(|e| {
         tracing::error!("Failed to connect to Products service: {}", e);
-        Error::new(
-            ErrorKind::Other,
-            "Failed to connect to Products service".to_string(),
-        )
+        Error::new(ErrorKind::Other, "Failed to connect to Products service")
     }) {
         if let Ok(res) = products_grpc_client
             .retrieve_product_sku_prices(request)

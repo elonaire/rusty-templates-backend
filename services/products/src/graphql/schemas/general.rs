@@ -55,9 +55,12 @@ impl Product {
         self.owner.as_ref().map(|t| &t.id).expect("owner").to_raw()
     }
 
-    async fn product_details(&self) -> String {
-        let files_service =
-            env::var("FILES_SERVICE").expect("Missing the FILES_SERVICE environment variable.");
+    async fn product_details(&self) -> Option<String> {
+        let files_service = env::var("FILES_SERVICE")
+            .map_err(|e| {
+                tracing::error!("Missing the FILES_SERVICE environment variable.: {}", e);
+            })
+            .ok()?;
 
         let file_url = format!("{}/view/{}", files_service, self.details_file);
 
@@ -67,11 +70,17 @@ impl Product {
                     let raw_html =
                         markdown::to_html_with_options(data.as_str(), &markdown::Options::gfm());
 
-                    raw_html.unwrap()
+                    Some(
+                        raw_html
+                            .map_err(|e| {
+                                tracing::error!("Failed to convert MD to HTML: {}", e);
+                            })
+                            .ok()?,
+                    )
                 }
-                Err(_e) => "".into(),
+                Err(_e) => None,
             },
-            Err(_e) => "".into(),
+            Err(_e) => None,
         }
     }
 }

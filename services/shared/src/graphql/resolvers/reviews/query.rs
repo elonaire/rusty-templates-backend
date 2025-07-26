@@ -24,7 +24,14 @@ impl ReviewsQuery {
         ctx: &Context<'_>,
         product_id: String,
     ) -> Result<Vec<Review>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let product_fk = ForeignKey {
             table: "product_id".into(),
@@ -37,6 +44,14 @@ impl ReviewsQuery {
             Product,
         >(db, product_fk)
         .await;
+
+        if product_fk_result.is_none() {
+            return Err(ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build());
+        }
 
         let mut reviews_query = db
             .query(
@@ -75,7 +90,14 @@ impl ReviewsQuery {
         ctx: &Context<'_>,
         product_id: String,
     ) -> Result<AverageRating> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let product_fk = ForeignKey {
             table: "product_id".into(),
@@ -88,6 +110,14 @@ impl ReviewsQuery {
             Product,
         >(db, product_fk)
         .await;
+
+        if product_fk_result.is_none() {
+            return Err(ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build());
+        }
 
         let mut average_rating_query = db
             .query(

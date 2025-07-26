@@ -7,7 +7,7 @@ use crate::{
     },
     utils::{cart::calculate_cart_total_amount, orders::update_order},
 };
-use async_graphql::{Context, Error, Object, Result};
+use async_graphql::{Context, Object, Result};
 use axum::{http::HeaderMap, Extension};
 use hyper::{
     header::{AUTHORIZATION, COOKIE},
@@ -40,7 +40,14 @@ pub struct OrderMutation;
 #[Object]
 impl OrderMutation {
     pub async fn create_order(&self, ctx: &Context<'_>) -> Result<String> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let auth_status = check_auth_from_acl(headers).await?;
@@ -56,6 +63,15 @@ impl OrderMutation {
             let buyer_result =
                 add_foreign_key_if_not_exists::<Extension<Arc<Surreal<Client>>>, User>(db, user_fk)
                     .await;
+
+            if buyer_result.is_none() {
+                return Err(ExtendedError::new(
+                    "Failed to create order",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build());
+            }
+
             let buyer_result_clone = buyer_result.clone();
             let internal_user_id = buyer_result_clone
                 .unwrap()
@@ -71,7 +87,14 @@ impl OrderMutation {
                 .query("SELECT *, (SELECT <-product_sku_id.product_sku_id[0] AS product_sku_id, quantity FROM <-cart_product[*]) AS products FROM cart WHERE archived=false AND owner=type::thing($user_id) LIMIT 1")
                 .bind(("user_id", format!("user_id:{}", internal_user_id)))
                 .await
-                .map_err(|e| Error::new(e.to_string()))?;
+                .map_err(|e| {
+                    tracing::error!("Cart error: {}", e);
+                    ExtendedError::new(
+                        "Failed to create order",
+                        Some(StatusCode::BAD_REQUEST.as_u16()),
+                    )
+                    .build()
+                })?;
 
             let existing_cart: Option<Cart> = existing_cart_query.take(0)?;
 
@@ -100,7 +123,14 @@ impl OrderMutation {
                             ),
                         ))
                         .await
-                        .map_err(|e| Error::new(e.to_string()))?;
+                        .map_err(|e| {
+                            tracing::error!("Cart error: {}", e);
+                            ExtendedError::new(
+                                "Failed to create order",
+                                Some(StatusCode::BAD_REQUEST.as_u16()),
+                            )
+                            .build()
+                        })?;
 
                     let new_order: Vec<Order> = create_order_transaction.take(0)?;
 
@@ -117,8 +147,17 @@ impl OrderMutation {
                         constructed_grpc_request: Some(&mut request),
                     };
 
-                    let acl_service_grpc = env::var("OAUTH_SERVICE_GRPC")
-                        .expect("Missing the OAUTH_SERVICE_GRPC environment variable.");
+                    let acl_service_grpc = env::var("OAUTH_SERVICE_GRPC").map_err(|e| {
+                        tracing::error!(
+                            "Missing the OAUTH_SERVICE_GRPC environment variable.: {}",
+                            e
+                        );
+                        ExtendedError::new(
+                            "Server Error",
+                            Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+                        )
+                        .build()
+                    })?;
 
                     let mut acl_grpc_client = create_grpc_client::<
                         GetUserEmailRequest,
@@ -162,7 +201,17 @@ impl OrderMutation {
                             };
 
                             let payments_service_grpc = env::var("PAYMENTS_SERVICE_GRPC")
-                                .expect("Missing the PAYMENTS_SERVICE_GRPC environment variable.");
+                                .map_err(|e| {
+                                    tracing::error!(
+                                        "Missing the PAYMENTS_SERVICE_GRPC environment variable.: {}",
+                                        e
+                                    );
+                                    ExtendedError::new(
+                                        "Server Error",
+                                        Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+                                    )
+                                    .build()
+                                })?;
 
                             let mut payments_grpc_client =
                                 create_grpc_client::<
@@ -228,7 +277,14 @@ impl OrderMutation {
         order_id: String,
         status: OrderStatus,
     ) -> Result<String> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let _auth_status = check_auth_from_acl(headers).await?;

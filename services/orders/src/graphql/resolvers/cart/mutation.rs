@@ -42,7 +42,14 @@ impl CartMutation {
         external_product_sku_id: String,
         cart_operation: CartOperation,
     ) -> Result<Cart> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         if let Some(headers) = ctx.data_opt::<HeaderMap>() {
             let session_id = set_session_cookie(&mut headers.clone(), ctx);
@@ -58,6 +65,15 @@ impl CartMutation {
                 ProductSku,
             >(db, product_sku_fk_body)
             .await;
+
+            if product_sku_fk.is_none() {
+                tracing::error!("Invalid SKU");
+                return Err(ExtendedError::new(
+                    "Failed to add to cart!",
+                    Some(StatusCode::BAD_REQUEST.as_u16()),
+                )
+                .build());
+            }
 
             let internal_product_sku_id = product_sku_fk
                 .unwrap()
@@ -83,6 +99,15 @@ impl CartMutation {
                         User,
                     >(db, user_fk_body)
                     .await;
+
+                    if user_fk.is_none() {
+                        tracing::error!("Invalid User");
+                        return Err(ExtendedError::new(
+                            "Failed to add to cart!",
+                            Some(StatusCode::BAD_REQUEST.as_u16()),
+                        )
+                        .build());
+                    }
 
                     let internal_user_id = user_fk
                         .unwrap()
@@ -249,6 +274,7 @@ async fn update_existing_cart(args: UpdateCartArgs) -> Result<Cart> {
                     ExtendedError::new("Failed to add to cart!", Some(StatusCode::BAD_REQUEST.as_u16())).build()
                 })?;
 
+            // TODO: Check if this still returns a Vec. Still requires a fail safe for unwrap below
             let response: Vec<Cart> = update_cart_transaction.take(0).map_err(|e| {
                 tracing::error!("Deserialization Error: {}", e);
                 ExtendedError::new(

@@ -24,7 +24,14 @@ impl CommentsQuery {
         ctx: &Context<'_>,
         product_id: String,
     ) -> Result<Vec<Comment>> {
-        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().unwrap();
+        let db = ctx.data::<Extension<Arc<Surreal<Client>>>>().map_err(|e| {
+            tracing::error!("Error extracting Surreal Client: {:?}", e);
+            ExtendedError::new(
+                "Server Error",
+                Some(StatusCode::INTERNAL_SERVER_ERROR.as_u16()),
+            )
+            .build()
+        })?;
 
         let product_fk = ForeignKey {
             table: "product_id".into(),
@@ -37,6 +44,14 @@ impl CommentsQuery {
             Product,
         >(db, product_fk)
         .await;
+
+        if commented_product_result.is_none() {
+            return Err(ExtendedError::new(
+                "Product not found",
+                Some(StatusCode::NOT_FOUND.as_u16()),
+            )
+            .build());
+        }
 
         let mut comments_query = db
             .query(
