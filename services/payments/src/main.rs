@@ -40,7 +40,6 @@ use rest::handlers::handle_paystack_webhook;
 // use dotenvy::dotenv;
 use rumqttc::v5::AsyncClient;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use tokio::task;
 use tonic::transport::Server;
 use tonic_middleware::MiddlewareLayer;
 use tower_http::cors::CorsLayer;
@@ -107,8 +106,8 @@ async fn main() -> Result<(), Error> {
         .expect("Missing the PAYMENTS_HTTP_PORT environment variable.");
     let payments_grpc_port = env::var("PAYMENTS_GRPC_PORT")
         .expect("Missing the PAYMENTS_GRPC_PORT environment variable.");
-    let mqtt_host = env::var("MQ_HOST").expect("Missing the MQ_HOST environment variable.");
-    let mqtt_port = env::var("MQ_PORT").expect("Missing the MQ_PORT environment variable.");
+    let mqtt_host = env::var("MQTT_HOST").expect("Missing the MQTT_HOST environment variable.");
+    let mqtt_port = env::var("MQTT_PORT").expect("Missing the MQTT_PORT environment variable.");
 
     let mut schema_builder =
         Schema::build(Query::default(), Mutation::default(), EmptySubscription);
@@ -140,8 +139,6 @@ async fn main() -> Result<(), Error> {
 
     let (client, mut eventloop) =
         MqttClient::new("payments-service", &mqtt_host, mqtt_port.parse().unwrap()).await?;
-
-    task::spawn(async move { while let Ok(_event) = eventloop.poll().await {} });
 
     let shared_state = Arc::new(AppState {
         mqtt_client: client,
@@ -193,6 +190,8 @@ async fn main() -> Result<(), Error> {
             })
             .ok();
     });
+
+    tokio::spawn(async move { while let Ok(_event) = eventloop.poll().await {} });
 
     match tokio::net::TcpListener::bind(format!("0.0.0.0:{}", payments_http_port)).await {
         Ok(http_listener) => {
