@@ -1,6 +1,7 @@
 mod database;
 mod graphql;
 mod grpc;
+mod mqtt;
 mod rest;
 mod utils;
 
@@ -33,25 +34,24 @@ use hyper::{
 
 use lib::{
     integration::grpc::clients::orders_service::orders_service_server::OrdersServiceServer,
-    middleware::auth::grpc::AuthMiddleware,
-    utils::{models::OrderStatus, mqtt::MqttClient},
+    middleware::auth::grpc::AuthMiddleware, utils::mqtt::MqttClient,
 };
-use rumqttc::v5::{
-    mqttbytes::{v5::Packet, QoS},
-    Event,
-};
+use mqtt::{events::handle_events, subscriptions::register_subscriptions};
+use rumqttc::v5::AsyncClient;
 // use serde::Deserialize;
 use surrealdb::{engine::remote::ws::Client, Surreal};
-use tokio::task;
 use tonic::transport::Server;
 use tonic_middleware::MiddlewareLayer;
 use tower_http::cors::CorsLayer;
 
 use graphql::resolvers::mutation::Mutation;
 use tracing_subscriber::fmt::writer::MakeWriterExt;
-use utils::orders::update_order;
 
 type MySchema = Schema<Query, Mutation, EmptySubscription>;
+
+pub struct AppState {
+    pub mqtt_client: AsyncClient,
+}
 
 /// Main GraphQL handler, all requests pass through here.
 async fn graphql_handler(
@@ -107,8 +107,8 @@ async fn main() -> Result<(), Error> {
         env::var("ORDERS_HTTP_PORT").expect("Missing the ORDERS_HTTP_PORT environment variable.");
     let orders_grpc_port =
         env::var("ORDERS_GRPC_PORT").expect("Missing the ORDERS_GRPC_PORT environment variable.");
-    let mqtt_host = env::var("MQ_HOST").expect("Missing the MQ_HOST environment variable.");
-    let mqtt_port = env::var("MQ_PORT").expect("Missing the MQ_PORT environment variable.");
+    let mqtt_host = env::var("MQTT_HOST").expect("Missing the MQTT_HOST environment variable.");
+    let mqtt_port = env::var("MQTT_PORT").expect("Missing the MQTT_PORT environment variable.");
 
     let mut schema_builder =
         Schema::build(Query::default(), Mutation::default(), EmptySubscription);
@@ -138,9 +138,20 @@ async fn main() -> Result<(), Error> {
         .with_writer(stdout.and(non_blocking))
         .init();
 
+    let (client, mut eventloop) =
+        MqttClient::new("payments-service", &mqtt_host, mqtt_port.parse().unwrap()).await?;
+
+    // Subscribe to MQTT topics
+    register_subscriptions(&client).await;
+
+    let shared_state = Arc::new(AppState {
+        mqtt_client: client,
+    });
+
     let app = Router::new()
         .route("/", post(graphql_handler))
         // .route("/oauth/callback", get(oauth_handler))
+        .layer(Extension(shared_state))
         .layer(Extension(schema))
         .layer(Extension(db.clone()))
         .layer(
@@ -184,51 +195,10 @@ async fn main() -> Result<(), Error> {
             .ok();
     });
 
-    let (client, mut eventloop) =
-        MqttClient::new("orders-service", &mqtt_host, mqtt_port.parse().unwrap()).await?;
-    client
-        .subscribe("payment/successful", QoS::ExactlyOnce)
-        .await
-        .map_err(|e| {
-            tracing::error!("Failed to subscribe to payment/successful event: {}", e);
-        })
-        .ok();
-
-    task::spawn(async move {
+    // Handle MQTT events
+    tokio::spawn(async move {
         while let Ok(event) = eventloop.poll().await {
-            match event {
-                Event::Incoming(packet) => {
-                    // Handle Incoming event
-                    match packet {
-                        Packet::Publish(message) => {
-                            // Handle Publish event
-                            match message.topic.as_ref() {
-                                b"payment/successful" => {
-                                    let payload_str = String::from_utf8_lossy(&message.payload);
-                                    // Add logic for successful payment
-                                    update_order(&db, payload_str.as_ref(), OrderStatus::Completed)
-                                        .await
-                                        .map_err(|e| {
-                                            tracing::error!(
-                                                "(payment/successful)Failed to update order: {}",
-                                                e
-                                            );
-                                        })
-                                        .ok();
-                                }
-                                _ => {
-                                    tracing::error!("Unknown topic: {:?}", message.topic);
-                                    // Handle other topics
-                                }
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-                Event::Outgoing(_) => {
-                    // Handle Outgoing event
-                }
-            }
+            handle_events(&db, &event).await;
         }
     });
 
